@@ -108,7 +108,7 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 	return sqrtPriceX96
 }
 
-func mulShift(multiplier *big.Int, multiplicand string) *ui.Int {
+func mulShift(multiplier *big.Int, multiplicand string) *big.Int {
 	multiplicandBig, _ := new(big.Int).SetString(multiplicand, 16)
 	productBig := new(big.Int).Mul(multiplier, multiplicandBig)
 	result := productBig.Rsh(productBig, 128)
