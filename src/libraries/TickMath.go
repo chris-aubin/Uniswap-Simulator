@@ -1,7 +1,6 @@
 package tickmath
 
 import (
-	"math"
 	"math/big"
 )
 
@@ -12,25 +11,30 @@ const (
 	MaxTick int = 887272
 	// The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
 	MinSqrtRatio int = 4295128739
-	// The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
-	MaxSqrtRatio = big.NewInt(1461446703485210103287273052203988822378723970342)
 )
 
-func getSqrtRatioAtTick(tick int) big.Int {
+var (
+	// The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
+	MaxSqrtRatio, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
+	// The maximum 256 bit unsigned integer
+	MaxUint256, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+)
+
+func getSqrtRatioAtTick(tick int) *big.Int {
 	absTick := tick
 	if tick < 0 {
 		absTick = -tick
 	}
-	
+
 	if absTick > MaxTick {
-		panic("T")
+		panic("INVALID_TICK")
 	}
 
-	var ratio *big.Int
-	if (absTick&0x1 != 0) {
-		ratio = big.NewInt("0xfffcb933bd6fad37aa2d162d1a594001")
+	ratio := new(big.Int)
+	if absTick&0x1 != 0 {
+		ratio.SetString("0xfffcb933bd6fad37aa2d162d1a594001", 16)
 	} else {
-		ratio = big.NewInt("0x100000000000000000000000000000000")
+		ratio.SetString("0x100000000000000000000000000000000", 16)
 	}
 	if (absTick & 0x2) != 0 {
 		ratio = mulShift(ratio, "0xfff97272373d413259a46990580e213a")
@@ -90,20 +94,23 @@ func getSqrtRatioAtTick(tick int) big.Int {
 		ratio = mulShift(ratio, "0x48a170391f7dc42444e8fa2")
 	}
 	if tick > 0 {
-		ratio = new(ui.Int).Div(cons.MaxUint256, ratio)
+		ratio = new(big.Int).Div(MaxUint256, ratio)
 	}
-
-	// back to Q96
-	if new(ui.Int).SMod(ratio, Q32).Sign() > 0 {
-		return new(ui.Int).Add(new(ui.Int).Div(ratio, Q32), cons.One)
-	} else {
-		return new(ui.Int).Div(ratio, Q32)
-	}
-
-	if (tick > 0) ratio = type(uint256).max / ratio;
 
 	// this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
 	// we then downcast because we know the result always fits within 160 bits due to our tick input constraint
 	// we round up in the division so getTickAtSqrtRatio of the output price is always consistent
-	sqrtPriceX96 = uint160((ratio >> 32) + (ratio % (1 << 32) == 0 ? 0 : 1));
+	rounding := big.NewInt(0)
+	if ratio.Mod(ratio, big.NewInt(1<<32)).Cmp(big.NewInt(0)) != 0 {
+		rounding = big.NewInt(1)
+	}
+	sqrtPriceX96 := ratio.Rsh(ratio, 32).Add(ratio, rounding)
+	return sqrtPriceX96
+}
+
+func mulShift(multiplier *big.Int, multiplicand string) *ui.Int {
+	multiplicandBig, _ := new(big.Int).SetString(multiplicand, 16)
+	productBig := new(big.Int).Mul(multiplier, multiplicandBig)
+	result := productBig.Rsh(productBig, 128)
+	return result
 }
