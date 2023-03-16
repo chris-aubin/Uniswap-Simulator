@@ -5,21 +5,47 @@ import (
 )
 
 const (
-	// The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
-	MinTick int = -887272
+	MinTick = -887272
 	// The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
-	MaxTick int = 887272
+	MaxTick = 887272
 	// The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
-	MinSqrtRatio int = 4295128739
+	MinSqrtRatio = 4295128739
 )
 
 var (
+	// The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
+	MinTickBig = big.NewInt(-887272)
+	// The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+	MaxTickBig = big.NewInt(887272)
+	// The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+	MinSqrtRatioBig = big.NewInt(4295128739)
 	// The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
 	MaxSqrtRatio, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 	// The maximum 256 bit unsigned integer
 	MaxUint256, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	MaxUint128, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffff", 16)
+	MaxUint64, _  = new(big.Int).SetString("0xffffffffffffffff", 16)
+	MaxUint32, _  = new(big.Int).SetString("0xffffffff", 16)
+	MaxUint16, _  = new(big.Int).SetString("0xffff", 16)
+	MaxUint8, _   = new(big.Int).SetString("0xff", 16)
+	MaxUint4, _   = new(big.Int).SetString("0xf", 16)
+	MaxUint2, _   = new(big.Int).SetString("0x3", 16)
+	MaxUint1, _   = new(big.Int).SetString("0x1", 16)
+	MaxUints      = map[int]*big.Int{
+		8: MaxUint256,
+		7: MaxUint128,
+		6: MaxUint64,
+		5: MaxUint32,
+		4: MaxUint16,
+		3: MaxUint8,
+		2: MaxUint4,
+		1: MaxUint2,
+		0: MaxUint1,
+	}
 )
 
+// Computes  the sqrt price for ticks of size 1.0001, i.e. sqrt(1.0001^tick)
+// Supports prices between 2**-128 and 2**128
 func getSqrtRatioAtTick(tick int) *big.Int {
 	absTick := tick
 	if tick < 0 {
@@ -97,9 +123,9 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 		ratio = new(big.Int).Div(MaxUint256, ratio)
 	}
 
-	// this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
-	// we then downcast because we know the result always fits within 160 bits due to our tick input constraint
-	// we round up in the division so getTickAtSqrtRatio of the output price is always consistent
+	// This divides by 1<<32
+	// We then downcast because we know the result always fits within 160 bits due to our tick input constraint
+	// We round up in the division so getTickAtSqrtRatio of the output price is always consistent
 	rounding := big.NewInt(0)
 	if ratio.Mod(ratio, big.NewInt(1<<32)).Cmp(big.NewInt(0)) != 0 {
 		rounding = big.NewInt(1)
@@ -108,9 +134,75 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 	return sqrtPriceX96
 }
 
+// Calculates the greatest tick value such that getRatioAtTick(tick) <= ratio
+// Accepts sqrtPriceX96, the sqrt ratio for which to compute the tick
+// Returns the greatest tick for which the ratio is less than or equal to the input ratio
+func getTickAtSqrtRatio(sqrtPriceX96 *big.Int) *big.Int {
+	if (sqrtPriceX96.Cmp(MaxSqrtRatio) != -1) || (sqrtPriceX96.Cmp(MinSqrtRatioBig) != 1) {
+		panic("tickMath.getTickAtSqrtRatio: INVALID_SQRT_RATIO")
+	}
+
+	ratio := new(big.Int).Lsh(sqrtPriceX96, 32)
+
+	r := new(big.Int).Lsh(sqrtPriceX96, 32)
+	msb := big.NewInt(0)
+	for i := 7; i > 0; i-- {
+		cmp := ratio.Cmp(MaxUints[i])
+		if cmp == -1 {
+			cmp = 0
+		}
+		f := new(big.Int).Lsh(big.NewInt(int64(cmp)), uint(i))
+		msb = new(big.Int).Or(msb, f)
+		r = new(big.Int).Rsh(r, uint(f.Int64()))
+	}
+	cmp := ratio.Cmp(MaxUints[0])
+	if cmp == -1 {
+		cmp = 0
+	}
+	f := new(big.Int).Lsh(big.NewInt(int64(cmp)), 0)
+	msb = new(big.Int).Or(msb, f)
+
+	dif := new(big.Int).Sub(big.NewInt(127), msb)
+	if msb.Cmp(big.NewInt(128)) != -1 {
+		r = new(big.Int).Lsh(ratio, uint(dif.Int64()))
+	} else {
+		r = new(big.Int).Rsh(ratio, uint(dif.Int64()))
+	}
+
+	log_2_temp := new(big.Int).Sub(msb, big.NewInt(128))
+	log_2 := new(big.Int).Lsh(log_2_temp, 64)
+
+	for i := 0; i < 14; i++ {
+		r = new(big.Int).Rsh(new(big.Int).Mul(r, r), 127)
+		f := new(big.Int).Rsh(r, 128)
+		log_2 = new(big.Int).Or(log_2, new(big.Int).Lsh(f, uint(63-i)))
+		r = new(big.Int).Rsh(r, uint(f.Uint64()))
+	}
+
+	log_sqrt10001_multiplicand, _ := new(big.Int).SetString("255738958999603826347141", 10)
+	log_sqrt10001 := new(big.Int).Mul(log_2, log_sqrt10001_multiplicand)
+
+	tickLow_multiplicand, _ := new(big.Int).SetString("3402992956809132418596140100660247210", 10)
+	tickLow := new(big.Int).Rsh(new(big.Int).Add(log_sqrt10001, tickLow_multiplicand), 128)
+
+	tickHigh_multiplicand, _ := new(big.Int).SetString("291339464771989622907027621153398088495", 10)
+	tickHigh := new(big.Int).Rsh(new(big.Int).Add(log_sqrt10001, tickHigh_multiplicand), 128)
+
+	if tickLow == tickHigh {
+		return tickLow
+	}
+
+	sqrtRatio := getSqrtRatioAtTick(int(tickHigh.Int64()))
+	if sqrtRatio.Cmp(sqrtPriceX96) <= 0 {
+		return tickHigh
+	} else {
+		return tickLow
+	}
+}
+
 func mulShift(multiplier *big.Int, multiplicand string) *big.Int {
 	multiplicandBig, _ := new(big.Int).SetString(multiplicand, 16)
 	productBig := new(big.Int).Mul(multiplier, multiplicandBig)
-	result := productBig.Rsh(productBig, 128)
+	result := new(big.Int).Rsh(productBig, 128)
 	return result
 }
