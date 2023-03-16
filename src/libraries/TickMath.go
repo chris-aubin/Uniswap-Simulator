@@ -27,7 +27,7 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 	}
 
 	if absTick > MaxTick {
-		panic("INVALID_TICK")
+		panic("tickMath.getSqrtRatioAtTick: INVALID_TICK")
 	}
 
 	ratio := new(big.Int)
