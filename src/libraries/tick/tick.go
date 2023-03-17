@@ -166,6 +166,32 @@ func (t *Ticks) clear(tick int) {
 	delete(t.TickData, tick)
 }
 
+// Transitions to next tick as needed by price movement
+// Accepts tick, the destination tick of the transition
+// Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
+// Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
+// Accepts secondsPerLiquidityCumulativeX128, the current seconds per liquidity
+// Accepts tickCumulative, the tick * time elapsed since the pool was first initialized
+// Accepts time, the current block.timestamp
+// Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
+func (t *Ticks) cross(
+	tick,
+	time int,
+	feeGrowthGlobal0X128,
+	feeGrowthGlobal1X128,
+	secondsPerLiquidityCumulativeX128,
+	tickCumulative *big.Int,
+) *big.Int {
+	info := t.TickData[tick]
+	info.FeeGrowthOutside0X128.Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
+	info.FeeGrowthOutside1X128.Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)
+	info.SecondsPerLiquidityOutsideX128.Sub(secondsPerLiquidityCumulativeX128, info.SecondsPerLiquidityOutsideX128)
+	info.TickCumulativeOutside.Sub(tickCumulative, info.TickCumulativeOutside)
+	info.SecondsOutside = time - info.SecondsOutside
+	liquidityNet := info.LiquidityNet
+	return liquidityNet
+}
+
 func Init() *Ticks {
 	return &Ticks{
 		TickData: make(map[int]*Tick),
