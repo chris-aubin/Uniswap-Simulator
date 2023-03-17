@@ -1,4 +1,4 @@
-package tickmath
+package tickMath
 
 import (
 	"math/big"
