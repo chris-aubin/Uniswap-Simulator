@@ -160,6 +160,12 @@ func (t *Ticks) update(
 	return flipped
 }
 
+// Clears data for a particular tick
+// Accepts tick, the tick index of the tick that will be cleared
+func (t *Ticks) clear(tick int) {
+	delete(t.TickData, tick)
+}
+
 func Init() *Ticks {
 	return &Ticks{
 		TickData: make(map[int]*Tick),
