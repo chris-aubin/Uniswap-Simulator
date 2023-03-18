@@ -1,8 +1,15 @@
 package pool
 
+import (
+	"math/big"
+
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/position"
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/tick"
+)
+
 type Slot0 struct {
 	// The current price
-	SqrtPriceX96 int
+	SqrtPriceX96 *big.Int
 	// The current tick
 	Tick int
 	// The most-recently updated index of the observations array
@@ -16,18 +23,37 @@ type Slot0 struct {
 	FeeProtocol int
 }
 
-// Accumulated protocol fees in token0/token1 units
+// Accumulated protocol fees in token0/token1 units (fees that could be collected by Uniswap governance)
 type ProtocolFees struct {
-	Token0 int
-	Token1 int
+	Token0 *big.Int
+	Token1 *big.Int
 }
 
 type Pool struct {
 	Slot0                Slot0
-	FeeGrowthGlobal0X128 int
-	FeeGrowthGlobal1X128 int
+	FeeGrowthGlobal0X128 *big.Int
+	FeeGrowthGlobal1X128 *big.Int
 	ProtocolFees         ProtocolFees
-	Liquidity            int
+	Liqui             *big.Int
+	// Tick-indexed state, see section 6.3 in Uniswap V3 Whitepaper
+	Ticks				t .Ticks
+	// Keeps track of which ticks have been initialised, see section 6.2 in Uniswap V3 Whitepaper
+	TickBitma 	map[int]bool
+	// Position-indexed state, see section 6.4 in Uniswap V3 Whitepaper
+	Positions			map[int]*position.Position
+}
+
+// Common checks for valid tick inputs
+func checkTicks(tickLower int, tickUpper int) {
+	if tickLower >= tickUpper {
+		panic("Pool.checkTicks: TLU")
+	}
+	if tickLower < tickMath.MIN_TICK {
+		panic("Pool.checkTicks: TLM")
+	}
+	if tickUpper > tickMath.MAX_TICK {
+		panic("Pool.checkTicks: TUM")
+	}
 }
 
 type modifyPositionParams struct {
@@ -37,37 +63,43 @@ type modifyPositionParams struct {
 	tickLower int
 	tickUpper int
 	// any change in liquidity
-	liquidityDelta int
+	liquidityDelta *big.Int
 }
 
-func (pool *Pool) modifyPosition(params modifyPositionParams) {
-	// TODO
-}
-
-// TODO
-//
-func (pool *Pool) Mint(recipient int, tickLower int, tickUpper int, amount int) (int, int) {
-
-}
-
-// TODO
-//
-func (pool *Pool) Burn() {
+// Effect some changes to a position
+// Accepts params,  an instance of the modifyPositionParams type that contains the position details
+// and the change to the position's liquidity to effect
+// position is a representation of the position with the given owner and tick range
+// amount0 is the amount of token0 owed to the pool (it is n/ amount1 is the amount of token1 owed to the pool (it is negative if the pool should pay the recipient)
+func (p *Pool) modifyPosition(params modifyPositionParams) {
+	
 
 }
 
 // TODO
 //
-func (pool *Pool) Swap() {
+func (p *Pool) Mint(recipient int, tickLower int, tickUpper int, amount int) (int, int) {
 
 }
 
 // TODO
 //
-func (pool *Pool) Collect() {
+func (p *Pool) Burn() {
 
 }
 
-func Make() *Pool {
+// TODO
+//
+func (p *Pool) Swap() {
 
 }
+
+// TODO
+//
+func (p *Pool) Collect() {
+
+}
+
+f
+}
+
