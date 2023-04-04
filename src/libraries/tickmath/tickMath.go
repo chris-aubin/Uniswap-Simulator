@@ -19,17 +19,23 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 	}
 
 	// The tick is processed one bit at a time (0x1 = 1, 0x2 = 10, 0x4 = 100, etc.)
+	// Each of these magic values is sqrt(1/1.0001)^2**bit, i.e. the square root
+	// of the price ratio. The magic values are used to compute
+	// sqrt(1.0001^tick) by using the fact that x^c = x^a*x^b where a + b = c.
 	ratio := new(big.Int)
 	if absTick&0x1 != 0 {
-		// 0xfffcb933bd6fad37aa2d162d1a594001 = 340265354078544963557816517032075149313
+		// sqrt(1/1.0001)^1
 		ratio.SetString("0xfffcb933bd6fad37aa2d162d1a594001", 16)
 	} else {
+		// sqrt(1/1.0001)^0
 		ratio.SetString("0x100000000000000000000000000000000", 16)
 	}
 	if (absTick & 0x2) != 0 {
+		// sqrt(1/1.0001)^2
 		ratio = mulShift(ratio, "0xfff97272373d413259a46990580e213a")
 	}
 	if (absTick & 0x4) != 0 {
+		// sqrt(1/1.0001)^4
 		ratio = mulShift(ratio, "0xfff2e50f5f656932ef12357cf3c7fdcc")
 	}
 	if (absTick & 0x8) != 0 {
@@ -83,11 +89,14 @@ func getSqrtRatioAtTick(tick int) *big.Int {
 	if (absTick & 0x80000) != 0 {
 		ratio = mulShift(ratio, "0x48a170391f7dc42444e8fa2")
 	}
+	// Because each of these magic values is sqrt(1/1.0001)^2**bit, if tick > 0
+	// we need to invert the ratio (calculate 1/ratio). When using Q128.128
+	// fixed point numbers we do this by dividing by 1<<128.
 	if tick > 0 {
 		ratio = new(big.Int).Div(constants.MaxUint256, ratio)
 	}
 
-	// This divides by 1<<32
+	// This divides by 1<<32 to convert from Q128.128 to Q64.96
 	// We then downcast because we know the result always fits within 160 bits due to our tick input constraint
 	// We round up in the division so getTickAtSqrtRatio of the output price is always consistent
 	rounding := big.NewInt(0)
@@ -108,6 +117,7 @@ func getTickAtSqrtRatio(sqrtPriceX96 *big.Int) *big.Int {
 
 	ratio := new(big.Int).Lsh(sqrtPriceX96, 32)
 
+	// Find the most significant bit (msb is an approximation of log2(ratio))
 	r := new(big.Int).Lsh(sqrtPriceX96, 32)
 	msb := big.NewInt(0)
 	for i := 7; i > 0; i-- {
