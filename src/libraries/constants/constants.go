@@ -3,35 +3,44 @@ package constants
 import "math/big"
 
 const (
-	MinTick = -887272
-	// The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+	// The maximum tick that may be passed to getSqrtRatioAtTick.
+	// log base 1.0001 of 2**128
 	MaxTick = 887272
-	// The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+	// The minimum tick that may be passed to getSqrtRatioAtTick (-MaxTick).
+	MinTick = -887272
+	// The minimum value that can be returned by getSqrtRatioAtTick.
+	// Equivalent to getSqrtRatioAtTick(MinTick).
 	MinSqrtRatio = 4295128739
 )
 
+// Declaring big.Ints as constants proved challenging, so they are declared as
+// variables that are just never changed.
 var (
-	// The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
+	// MinTick as a big.Int for use in calculations.
 	MinTickBig = big.NewInt(-887272)
-	// The maximum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**128
+	// MaxTick as a big.Int for use in calculations.
 	MaxTickBig = big.NewInt(887272)
-	// The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+	// MinSqrtRatio as a big.Int for use in calculations.
 	MinSqrtRatioBig = big.NewInt(4295128739)
-	// The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
-	MaxSqrtRatio, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
-	Q96, _          = new(big.Int).SetString("0x1000000000000000000000000", 16)
-	// The maximum _ bit unsigned integer
-	MaxUint256, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	MaxUint160, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffffffffffff", 16)
-	MaxUint128, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffff", 16)
-	MaxUint64, _  = new(big.Int).SetString("0xffffffffffffffff", 16)
-	MaxUint32, _  = new(big.Int).SetString("0xffffffff", 16)
-	MaxUint16, _  = new(big.Int).SetString("0xffff", 16)
-	MaxUint8, _   = new(big.Int).SetString("0xff", 16)
-	MaxUint4, _   = new(big.Int).SetString("0xf", 16)
-	MaxUint2, _   = new(big.Int).SetString("0x3", 16)
-	MaxUint1, _   = new(big.Int).SetString("0x1", 16)
-	MaxUints      = map[int]*big.Int{
+	// The maximum value that can be returned by getSqrtRatioAtTick.
+	// Equivalent to getSqrtRatioAtTick(MaxTick).
+	MaxSqrtRatio = new(big.Int)
+	// For handling binary fixed point numbers, see:
+	// https://en.wikipedia.org/wiki/Q_(number_format)
+	Q96 = new(big.Int)
+	// Maximum unsigned integers for given number of bits.
+	MaxUint256 = new(big.Int)
+	MaxUint160 = new(big.Int)
+	MaxUint128 = new(big.Int)
+	MaxUint64  = new(big.Int)
+	MaxUint32  = new(big.Int)
+	MaxUint16  = new(big.Int)
+	MaxUint8   = new(big.Int)
+	MaxUint4   = new(big.Int)
+	MaxUint2   = new(big.Int)
+	MaxUint1   = new(big.Int)
+	// Map of maximum unsigned integers for given number of bits.
+	MaxUints = map[int]*big.Int{
 		8: MaxUint256,
 		7: MaxUint128,
 		6: MaxUint64,
@@ -43,3 +52,18 @@ var (
 		0: MaxUint1,
 	}
 )
+
+func init() {
+	MaxSqrtRatio.SetString("1461446703485210103287273052203988822378723970342", 10)
+	Q96.SetString("1000000000000000000000000", 16)
+	MaxUint256.SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	MaxUint160.SetString("ffffffffffffffffffffffffffffffffffffffff", 16)
+	MaxUint128.SetString("ffffffffffffffffffffffffffffffff", 16)
+	MaxUint64.SetString("ffffffffffffffff", 16)
+	MaxUint32.SetString("ffffffff", 16)
+	MaxUint16.SetString("ffff", 16)
+	MaxUint8.SetString("ff", 16)
+	MaxUint4.SetString("f", 16)
+	MaxUint2.SetString("3", 16)
+	MaxUint1.SetString("1", 16)
+}
