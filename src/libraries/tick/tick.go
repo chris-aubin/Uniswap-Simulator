@@ -3,19 +3,20 @@ package tick
 import (
 	"math/big"
 
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/liquidityMath"
-	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/tickMath"
 )
 
 var (
 	MaxUint128, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffff", 16)
 )
 
-// Info stored for each initialised individual tick
+// Info stored for each initialised tick
 type Tick struct {
-	// The total position liquidity that references this tick
+	// The total position liquidity that references this tick.
 	LiquidityGross *big.Int
-	// Amount of net liquidity added (subtracted) when tick is crossed from left to right (right to left),
+	// Amount of net liquidity added when tick is crossed from left to right (or
+	// subtracted when the tick is crossed from right to left),
 	LiquidityNet *big.Int
 	// Fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
 	// Only has relative meaning, not absolute — the value depends on when the tick is initialised
@@ -45,8 +46,8 @@ type Ticks struct {
 // requires ticks to be initialised every 3rd tick i.e., ..., -6, -3, 0, 3, 6, ...
 // Returns the max liquidity per tick
 func (t *Ticks) tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
-	minTick := (tickMath.MinTick / tickSpacing) * tickSpacing
-	maxTick := (tickMath.MaxTick / tickSpacing) * tickSpacing
+	minTick := (constants.MinTick / tickSpacing) * tickSpacing
+	maxTick := (constants.MaxTick / tickSpacing) * tickSpacing
 	numTicks := ((maxTick - minTick) / tickSpacing) + 1
 	result := new(big.Int).Div(MaxUint128, big.NewInt(int64(numTicks)))
 	return result
