@@ -6,7 +6,6 @@ import (
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/position"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/tick"
-	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/oracle"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/swapMath"
 )
@@ -137,83 +136,6 @@ func (p *Pool) nextInitializedTickWithinOneWord(
 	}
 }
 
-// Returns a snapshot of the tick cumulative, seconds per liquidity and seconds inside a tick range
-// tickCumulativeInside is the tick accumulator, i.e. tick * time elapsed since the beginning of the current observation period
-// secondsPerLiquidityInsideX128 is the seconds per liquidity accumulator, i.e. seconds elapsed since the beginning of the current observation period / liquidity
-// secondsInside is the seconds accumulator, i.e. seconds elapsed since the beginning of the current observation period
-// External function
-// func (p *Pool) SnapshotCumulativesInside(tickLower int, tickUpper int) (
-// 	tickCumulativeInside big.Int,
-// 	secondsPerLiquidityInsideX128 big.Int, 
-// 	secondsInside int
-// 	) {
-// 	checkTicks(tickLower, tickUpper)
-
-// 	tickCumulativeLower := new(big.Int)
-// 	tickCumulativeUpper := new(big.Int)
-// 	secondsPerLiquidityOutsideLowerX128 := new(big.Int)
-// 	secondsPerLiquidityOutsideUpperX128 := new(big.Int)
-// 	var secondsOutsideLower int
-// 	var secondsOutsideUpper int
-
-// 	lower := p.Ticks.TickData[tickLower]
-// 	upper := p.Ticks.TickData[tickUpper]
-
-// 	var initialisedLower bool
-
-// 	tickCumulativeLower = lower.TickCumulativeOutside
-// 	secondsPerLiquidityOutsideLowerX128 = lower.SecondsPerLiquidityOutsideX128
-// 	secondsOutsideLower = lower.SecondsOutside
-// 	initialisedLower = lower.Initialised
-// 	if !initialisedLower {
-// 		panic()
-// 	}
-
-// 	tickCumulativeUpper = upper.TickCumulativeOutside
-// 	secondsPerLiquidityOutsideUpperX128 = upper.SecondsPerLiquidityOutsideX128
-// 	secondsOutsideUpper = upper.SecondsOutside
-// 	initialisedUpper := upper.Initialised
-// 	if !initialisedUpper {
-// 		panic()
-// 	}
-
-// 	_slot0 := p.Slot0
-
-// 	////////////////////////////////////////////////////////////////////////////
-// 	if (_slot0.tick < tickLower) {
-// 		return (
-// 			new(big.Int).Sub(tickCumulativeLower, tickCumulativeUpper),
-// 			new(big.Int).Sub(secondsPerLiquidityOutsideLowerX128, secondsPerLiquidityOutsideUpperX128),
-// 			secondsOutsideLower - secondsOutsideUpper
-// 		);
-// 	} else if (_slot0.tick < tickUpper) {
-// 		// Get time
-// 		time := _blockTimestamp()
-// 		(int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128) = observations.observeSingle(
-// 			time,
-// 			0,
-// 			_slot0.Tick,
-// 			_slot0.ObservationIndex,
-// 			liquidity,
-// 			_slot0.ObservationCardinality
-// 		);
-// 		return (
-// 			tickCumulative - tickCumulativeLower - tickCumulativeUpper,
-// 			secondsPerLiquidityCumulativeX128 -
-// 				secondsPerLiquidityOutsideLowerX128 -
-// 				secondsPerLiquidityOutsideUpperX128,
-// 			time - secondsOutsideLower - secondsOutsideUpper
-// 		);
-// 	} else {
-// 		return (
-// 			tickCumulativeUpper - tickCumulativeLower,
-// 			secondsPerLiquidityOutsideUpperX128 - secondsPerLiquidityOutsideLowerX128,
-// 			secondsOutsideUpper - secondsOutsideLower
-// 		);
-// 	}
-
-// }
-
 type modifyPositionParams struct {
 	// the address that owns the position
 	owner string
@@ -255,16 +177,16 @@ func (p *Pool) _modifyPosition(params modifyPositionParams) (position *position.
 		} else if (_slot0.tick < params.tickUpper) {
 			// current tick is inside the passed range
 			liquidityBefore := liquidity
-			
-			// write an oracle entry
-			slot0.ObservationIndex, slot0.observationCardinality = observations.write(
-				_slot0.observationIndex,
-				_blockTimestamp(),
-				_slot0.tick,
-				liquidityBefore,
-				_slot0.observationCardinality,
-				_slot0.observationCardinalityNext,
-			);
+
+			// Write an oracle entry
+			// slot0.ObservationIndex, slot0.observationCardinality = observations.write(
+			// 	slot0.observationIndex,
+			// 	blockTimestamp(),
+			// 	slot0.tick,
+			// 	liquidityBefore,
+			// 	slot0.observationCardinality,
+			// 	slot0.observationCardinalityNext,
+			// );
 
 			amount0 = SqrtPriceMath.getAmount0Delta(
 				_slot0.sqrtPriceX96,
