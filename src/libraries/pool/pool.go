@@ -38,9 +38,6 @@ type Pool struct {
 	Liquidity            *big.Int
 	// Tick-indexed state, see section 6.3 in Uniswap V3 Whitepaper
 	Ticks				 tick.Ticks
-	// Keeps track of which ticks have been initialised, see section 6.2 in 
-	// Uniswap V3 Whitepaper.
-	TickBitmap 	         map[int]bool
 	// Position-indexed state, see section 6.4 in Uniswap V3 Whitepaper
 	// In the deployed contract, this is a mapping from the hash of a position's
 	// owner's address, tickLower, and tickUpper to a Position. We will just 
@@ -272,14 +269,6 @@ func (p *Pool) _updatePosition(
 			true,
 			maxLiquidityPerTick
 		)
-
-		if (flippedLower) {
-			tickBitmap[tickLower] = !tickBitmap[tickLower]
-		}
-
-		if (flippedUpper) {
-			tickBitmap[tickUpper] = !tickBitmap[tickUpper]
-		}
 	}
 
 	(uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) = ticks.getFeeGrowthInside(
