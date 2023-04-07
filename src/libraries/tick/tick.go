@@ -18,20 +18,14 @@ type Tick struct {
 	// Amount of net liquidity added when tick is crossed from left to right (or
 	// subtracted when the tick is crossed from right to left),
 	LiquidityNet *big.Int
-	// Fee growth per unit of liquidity on the _other_ side of this tick (relative to the current tick)
-	// Only has relative meaning, not absolute — the value depends on when the tick is initialised
+	// Fee growth per unit of liquidity on the _other_ side of this tick
+	// (relative to the current tick). Only has relative meaning, not absolute —
+	// the value depends on when the tick is initialised.
 	FeeGrowthOutside0X128 *big.Int
 	FeeGrowthOutside1X128 *big.Int
-	// The cumulative tick value on the other side of the tick
-	TickCumulativeOutside *big.Int
-	// The seconds per unit of liquidity on the _other_ side of this tick (relative to the current tick)
-	// Only has relative meaning, not absolute — the value depends on when the tick is initialised
-	SecondsPerLiquidityOutsideX128 *big.Int
-	// The seconds spent on the other side of the tick (relative to the current tick)
-	// Only has relative meaning, not absolute — the value depends on when the tick is initialised
-	SecondsOutside int
-	// True iff the tick is initialised, i.e. the value is exactly equivalent to the expression liquidityGross != 0
-	// These 8 bits are set to prevent fresh sstores when crossing newly initialised ticks
+	// True iff the tick is initialised, i.e. the value is exactly equivalent to
+	// the expression liquidityGross != 0. These 8 bits are set to prevent fresh
+	//  stores when crossing newly initialised ticks
 	Initialised bool
 }
 
@@ -61,13 +55,7 @@ func (t *Ticks) tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 /// Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
 /// Returns feeGrowthInside0X128, the all-time fee growth in token0, per unit of liquidity, inside the position's tick boundaries
 /// Returns feeGrowthInside1X128, the all-time fee growth in token1, per unit of liquidity, inside the position's tick boundaries
-func (t *Ticks) getFeeGrowthInside(
-	tickLower,
-	tickUpper,
-	tickCurrent int,
-	feeGrowthGlobal0X128,
-	feeGrowthGlobal1X128 *big.Int,
-) (*big.Int, *big.Int) {
+func (t *Ticks) getFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) (*big.Int, *big.Int) {
 	lower := t.TickData[tickLower]
 	upper := t.TickData[tickUpper]
 
@@ -109,24 +97,10 @@ func (t *Ticks) getFeeGrowthInside(
 // Accepts liquidityDelta, the (new) amount of liquidity to be added (subtracted) when tick is crossed from left to right (right to left)
 // Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
 // Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
-// Accepts secondsPerLiquidityCumulativeX128, the all-time seconds per max(1, liquidity) of the pool
-// Accepts tickCumulative, the tick * time elapsed since the pool was first initialised
-// Accepts time, the current block timestamp cast to a uint32
 // Accepts upper, a boolean that is true for updating a position's upper tick, or false for updating a position's lower tick
 // Accepts maxLiquidity, the maximum liquidity allocation for a single tick
 // Returns flipped, a boolean that indicates whether the tick was flipped from initialised to uninitialised, or vice versa
-func (t *Ticks) update(
-	tick,
-	tickCurrent,
-	time int,
-	liquidityDelta,
-	feeGrowthGlobal0X128,
-	feeGrowthGlobal1X128,
-	secondsPerLiquidityCumulativeX128,
-	tickCumulative,
-	maxLiquidity *big.Int,
-	upper bool,
-) bool {
+func (t *Ticks) update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128, maxLiquidity *big.Int, upper bool) bool {
 	info := t.TickData[tick]
 
 	liquidityGrossBefore := info.LiquidityGross
@@ -143,9 +117,6 @@ func (t *Ticks) update(
 		if tick <= tickCurrent {
 			info.FeeGrowthOutside0X128 = feeGrowthGlobal0X128
 			info.FeeGrowthOutside1X128 = feeGrowthGlobal1X128
-			info.SecondsPerLiquidityOutsideX128 = secondsPerLiquidityCumulativeX128
-			info.TickCumulativeOutside = tickCumulative
-			info.SecondsOutside = time
 		}
 		info.Initialised = true
 	}
@@ -171,24 +142,11 @@ func (t *Ticks) clear(tick int) {
 // Accepts tick, the destination tick of the transition
 // Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
 // Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
-// Accepts secondsPerLiquidityCumulativeX128, the current seconds per liquidity
-// Accepts tickCumulative, the tick * time elapsed since the pool was first initialised
-// Accepts time, the current block.timestamp
 // Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
-func (t *Ticks) cross(
-	tick,
-	time int,
-	feeGrowthGlobal0X128,
-	feeGrowthGlobal1X128,
-	secondsPerLiquidityCumulativeX128,
-	tickCumulative *big.Int,
-) *big.Int {
+func (t *Ticks) cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) *big.Int {
 	info := t.TickData[tick]
 	info.FeeGrowthOutside0X128.Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
 	info.FeeGrowthOutside1X128.Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)
-	info.SecondsPerLiquidityOutsideX128.Sub(secondsPerLiquidityCumulativeX128, info.SecondsPerLiquidityOutsideX128)
-	info.TickCumulativeOutside.Sub(tickCumulative, info.TickCumulativeOutside)
-	info.SecondsOutside = time - info.SecondsOutside
 	liquidityNet := info.LiquidityNet
 	return liquidityNet
 }
