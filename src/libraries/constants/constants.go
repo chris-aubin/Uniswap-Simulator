@@ -14,7 +14,7 @@ const (
 )
 
 // Declaring big.Ints as constants proved challenging, so they are declared as
-// variables that are just never changed.
+// variables that are just never changed after they are initialised.
 var (
 	// MinTick as a big.Int for use in calculations.
 	MinTickBig = big.NewInt(-887272)
@@ -27,7 +27,8 @@ var (
 	MaxSqrtRatio = new(big.Int)
 	// For handling binary fixed point numbers, see:
 	// https://en.wikipedia.org/wiki/Q_(number_format)
-	Q96 = new(big.Int)
+	Q128 = new(big.Int)
+	Q96  = new(big.Int)
 	// Maximum unsigned integers for given number of bits.
 	MaxUint256 = new(big.Int)
 	MaxUint160 = new(big.Int)
@@ -53,8 +54,10 @@ var (
 	}
 )
 
+// Initialise the big.Ints.
 func init() {
 	MaxSqrtRatio.SetString("1461446703485210103287273052203988822378723970342", 10)
+	Q128.SetString("100000000000000000000000000000000", 16)
 	Q96.SetString("1000000000000000000000000", 16)
 	MaxUint256.SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	MaxUint160.SetString("ffffffffffffffffffffffffffffffffffffffff", 16)
