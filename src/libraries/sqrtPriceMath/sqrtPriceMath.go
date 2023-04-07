@@ -24,13 +24,9 @@ import (
 // amount is how much of token0 to add or remove from virtual reserves
 // add is whether to add or remove the amount of token0
 // Returns the price after adding or removing amount, depending on add
-func GetNextSqrtPriceFromAmount0RoundingUp(
-	sqrtPX96,
-	liquidity,
-	amount *big.Int,
-	add bool,
-) *big.Int {
-	// We short circuit amount == 0 because the result is otherwise not guaranteed to equal the input price
+func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int, add bool) *big.Int {
+	// We short circuit amount == 0 because the result is otherwise not
+	// guaranteed to equal the input price
 	if amount.Cmp(big.NewInt(0)) == 0 {
 		return sqrtPX96
 	}
