@@ -10,42 +10,47 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/swapMath"
 )
 
-// Available to the public.
+// Pool state.
 type Slot0 struct {
 	// The current price.
 	SqrtPriceX96 *big.Int
 	// The current tick.
 	Tick int
 	// The current protocol fee as a percentage of the swap fee taken on 
-	// withdrawal.Represented as an integer denominator (1/x)%
+	// withdrawal. Represented as an integer denominator (1/x)%
 	FeeProtocol int
 }
 
-// Accumulated protocol fees in token0/token1 units (fees that could be collected by Uniswap governance)
-// Available to the public
+// Accumulated protocol fees in token0/token1 units (fees that could be 
+// collected by Uniswap governance).
 type ProtocolFees struct {
 	Token0 *big.Int
 	Token1 *big.Int
 }
 
 // Pool state.
-// Available to the public
 type Pool struct {
 	Slot0                Slot0
+	// FeeGrowthGlobal0X128 and FeeGrowthGlobal1X128 represent the total amount 
+	// of fees that have been earned per unit of virtual liquidity (L), over the
+	// entire history of the contract. This is the same as the total amount of 
+	// fees that would have been earned by 1 unit of unbounded liquidity that 
+	// was deposited when the contract was first initialized.
 	FeeGrowthGlobal0X128 *big.Int
 	FeeGrowthGlobal1X128 *big.Int
 	ProtocolFees         ProtocolFees
 	Liquidity            *big.Int
-	// Tick-indexed state, see section 6.3 in Uniswap V3 Whitepaper
+	// Tick-indexed state, as per section 6.3 in Uniswap V3 Whitepaper. This is 
+	// a mapping from tick index to a Tick struct that contains information 
+	// about that tick (see the tick package for more).
 	Ticks				 tick.Ticks
-	// Position-indexed state, see section 6.4 in Uniswap V3 Whitepaper
-	// In the deployed contract, this is a mapping from the hash of a position's
-	// owner's address, tickLower, and tickUpper to a Position. We will just 
-	// implement it as a mapping from a string, which is the owner's address, 
-	// tickUpper and tickLower concatenate, to a Position.
+	// Position-indexed state, as per section 6.4 in Uniswap V3 Whitepaper. In 
+	// the deployed contract, this is a mapping from the hash of a position's
+	// owner's address, tickLower, and tickUpper (in byte form) to a Position. 
+	// In this simulator it is implemented it as a mapping from a string, which 
+	// is the concatenation of the owner's address, tickUpper and tickLower 
+	// concatenate, to a Position (see the position package for more).
 	Positions			 map[string]*position.Position
-	// Observations
-	Observations         oracle.Oracle
 	// Balance of token0 and token1 held by the pool. Not part of state in the 
 	// deployed contract (the deployed contract checks the balance of the token 
 	// owned by the pool address).
@@ -54,43 +59,42 @@ type Pool struct {
 }
 
 // Common checks for valid tick inputs.
-// Private function
 func checkTicks(tickLower int, tickUpper int) {
 	if tickLower >= tickUpper {
-		panic("Pool.checkTicks: TLU")
+		panic("Pool.checkTicks: tickLower > tickUpper")
 	}
 	if tickLower < constants.MinTick {
-		panic("Pool.checkTicks: TLM")
+		panic("Pool.checkTicks: tickLower < MINTICK")
 	}
 	if tickUpper > constants.MaxTick {
-		panic("Pool.checkTicks: TUM")
+		panic("Pool.checkTicks: tickUpper > MAXTICK")
 	}
-}
-
-// Returns the current block timestamp.
-// Internal function
-func _blockTimestamp () (time int) {
-	return int(time.Now().Unix())
 }
 
 // Finds the next initialized tick contained in the same word (or adjacent 
-// word) (i.e. within 256 ticks) as the tick that is either to the left (less 
-// than or equal to) or right (greater than) of the given tick
-// tick is the starting tick
-// tickSpacing is the spacing between usable ticks for the pool
-// lte  is a bool that indicates whether to search for the next initialized tick
-// to the left (less than or equal to the starting tick)
-// Returns next, the next initialized or uninitialized tick up to 256 ticks away
-// from the current tick and initialized, a bool that indicates whether or not
-// next is initialized (because the function only searches within up to 
-// 256 ticks)
-func (p *Pool) nextInitializedTickWithinOneWord(
-	tick,
-	tickSpacing int,
-	lte	bool,
-) (next int, initialized bool) {
+// word i.e. within 256 ticks) as the tick that is either to the left (less 
+// than or equal to) or right (greater than) of the given tick. This function is
+// used because the deployed contract uses a bitMap to efficiently store and 
+// check which ticks are initialized. The bitMap is made up of multiple words. 
+// This is unnecessary in the simulator, but we use it to avoid making too many 
+// changes to the deployed contract.
+// 
+// Arguments:
+// tick         -- the starting tick
+// tickSpacing  -- the spacing between usable ticks for the pool
+// lte          -- a bool that indicates whether to search for the next 
+//                 initialized tick to the left (less than or equal to the 
+//                 starting tick)
+// Returns:
+// next         -- the next initialized or uninitialized tick up to 256 ticks 
+//                 away from the current tick
+// initialized  -- a bool that indicates whether or not next is initialized 
+//                 (because the function only searches within up to 256 ticks)
+func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte	bool) (next int, initialized bool) {
+	// Find the boundaries of the word that would contain the tick.
 	wordLowerBound := tick - tick % 256
 	wordUpperBound := wordLowerBound + 255
+	// Adjust for the tickSpacing.
 	compressed := tick / tickSpacing
 	if (tick < 0 && tick % tickSpacing != 0) {
 		compressed = compressed - 1
@@ -98,7 +102,10 @@ func (p *Pool) nextInitializedTickWithinOneWord(
 
 	if (lte) {
 		for i := compressed - 1; i >= wordLowerBound; i-- {
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// INCORRECT - WRONG KIND OF POSITION
 			position, err := p.Positions[i*tickSpacing]
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			if err != nil {
 				if i == wordLowerBound {
 					return wordLowerBound*tickSpacing, false
@@ -115,7 +122,10 @@ func (p *Pool) nextInitializedTickWithinOneWord(
 		}
 	} else {
 		for i := compressed + 1; i <= wordUpperBound; i++ {
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			// INCORRECT - WRONG KIND OF POSITION
 			position, err := p.Positions[i*tickSpacing]
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			if err != nil {
 				if i == wordUpperBound {
 					return wordUpperBound*tickSpacing, false
@@ -143,27 +153,35 @@ type modifyPositionParams struct {
 	liquidityDelta *big.Int
 }
 
-// Effect some changes to a position
-// Accepts params,  an instance of the modifyPositionParams type that contains the position details
-// and the change to the position's liquidity to effect
-// position is a representation of the position with the given owner and tick range
-// amount0 is the amount of token0 owed to the pool (it is n/ amount1 is the amount of token1 owed to the pool (it is negative if the pool should pay the recipient)
-func (p *Pool) _modifyPosition(params modifyPositionParams) (position *position.Position, amount0 *big.Int, amount1 *big.Int) {
+// Effect some changes to a position.
+// 
+// Arguments:
+// params   --  An modifyPositionParams type that contains the position details
+//              and the changes to the position's liquidity to effect
+// 
+// Returns:
+// position -- The updated position
+// amount0  -- the amount of token0 owed to the pool (negative if the pool 
+//             should pay the recipient
+// amount1  -- the amount of token1 owed to the pool (negative if the pool 
+//             should pay the recipient
+func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.Position, amount0 *big.Int, amount1 *big.Int) {
 	checkTicks(params.tickLower, params.tickUpper)
-	_slot0 = p.Slot0; // SLOAD for gas optimization
+	slot0 = p.Slot0
 
-	position = _updatePosition(
+	position = updatePosition(
 		params.owner,
 		params.tickLower,
 		params.tickUpper,
 		params.liquidityDelta,
-		_slot0.tick,
+		slot0.tick,
 	)
+
 	amount0 := new(big.Int)
 	amount1 := new(big.Int)
 
 	if (params.liquidityDelta != 0) {
-		if (_slot0.tick < params.tickLower) {
+		if (slot0.tick < params.tickLower) {
 			// Current tick is below the passed range; liquidity can only become in range by crossing from left to
 			// right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
 			amount0 = SqrtPriceMath.getAmount0Delta(
@@ -172,116 +190,91 @@ func (p *Pool) _modifyPosition(params modifyPositionParams) (position *position.
 				params.liquidityDelta,
 			)
 		} else if (_slot0.tick < params.tickUpper) {
-			// current tick is inside the passed range
+			// Current tick is inside the passed range
 			liquidityBefore := liquidity
 
-			// Write an oracle entry
-			// slot0.ObservationIndex, slot0.observationCardinality = observations.write(
-			// 	slot0.observationIndex,
-			// 	blockTimestamp(),
-			// 	slot0.tick,
-			// 	liquidityBefore,
-			// 	slot0.observationCardinality,
-			// 	slot0.observationCardinalityNext,
-			// );
-
 			amount0 = SqrtPriceMath.getAmount0Delta(
-				_slot0.sqrtPriceX96,
+				slot0.sqrtPriceX96,
 				TickMath.getSqrtRatioAtTick(params.tickUpper),
 				params.liquidityDelta,
-			);
+			)
 			amount1 = SqrtPriceMath.getAmount1Delta(
 				TickMath.getSqrtRatioAtTick(params.tickLower),
-				_slot0.sqrtPriceX96,
+				slot0.sqrtPriceX96,
 				params.liquidityDelta,
-			);
+			)
 
 			liquidity = LiquidityMath.addDelta(liquidityBefore, params.liquidityDelta);
 		} else {
-			// current tick is above the passed range; liquidity can only become in range by crossing from right to
+			// Current tick is above the passed range; liquidity can only become in range by crossing from right to
 			// left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
 			amount1 = SqrtPriceMath.getAmount1Delta(
 				TickMath.getSqrtRatioAtTick(params.tickLower),
 				TickMath.getSqrtRatioAtTick(params.tickUpper),
 				params.liquidityDelta,
-			);
+			)
 		}
 	}
 	return
 }
 
 // Gets and updates a position with the given liquidity delta
-// owner is the owner of the position
-// tickLower is the lower tick of the position's tick range
-// tickUpper is the upper tick of the position's tick range
-// tick the current tick, passed to avoid sloads
-func (p *Pool) _updatePosition(
-	owner string,
-	tickLower,
-	tickUpper,
-	tick int,
-	liquidityDelta *big.Int,
-) (position *position.Position) {
+// 
+// Arguments:
+// owner     -- the owner of the position
+// tickLower -- the lower tick of the position's tick range
+// tickUpper -- the upper tick of the position's tick range
+// 
+// Returns:
+// position  -- the updated position
+func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liquidityDelta *big.Int,) (position *position.Position) {
 	position, err = positions[fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)]
 	if err != nil {
 		panic()
 	}
 
-	_feeGrowthGlobal0X128 := feeGrowthGlobal0X128
-	_feeGrowthGlobal1X128 := feeGrowthGlobal1X128
+	feeGrowthGlobal0X128 := feeGrowthGlobal0X128
+	feeGrowthGlobal1X128 := feeGrowthGlobal1X128
 
-	// if we need to update the ticks, do it
-	bool flippedLower;
-	bool flippedUpper;
+	// Used to determine if we need to clear tickLower/ tickUpper after the 
+	// position is updated/
+	var flippedLower bool
+	var flippedUpper bool
 	if (liquidityDelta != 0) {
-		time := _blockTimestamp()
-		tickCumulative, secondsPerLiquidityCumulativeX128 := observations.observeSingle(
-			time,
-			0,
-			slot0.tick,
-			slot0.observationIndex,
-			liquidity,
-			slot0.observationCardinality
-		)
+		time := blockTimestamp()
 
 		flippedLower = ticks.update(
 			tickLower,
 			tick,
 			liquidityDelta,
-			_feeGrowthGlobal0X128,
-			_feeGrowthGlobal1X128,
-			secondsPerLiquidityCumulativeX128,
-			tickCumulative,
-			time,
+			feeGrowthGlobal0X128,
+			feeGrowthGlobal1X128,
+			maxLiquidityPerTick,
 			false,
-			maxLiquidityPerTick
 		)
 
 		flippedUpper = ticks.update(
 			tickUpper,
 			tick,
 			liquidityDelta,
-			_feeGrowthGlobal0X128,
-			_feeGrowthGlobal1X128,
-			secondsPerLiquidityCumulativeX128,
-			tickCumulative,
-			time,
+			feeGrowthGlobal0X128,
+			feeGrowthGlobal1X128,
+			maxLiquidityPerTick,
 			true,
-			maxLiquidityPerTick
 		)
 	}
 
-	(uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) = ticks.getFeeGrowthInside(
+	feeGrowthInside0X128, feeGrowthInside1X128 := ticks.getFeeGrowthInside(
 		tickLower,
 		tickUpper,
 		tick,
-		_feeGrowthGlobal0X128,
-		_feeGrowthGlobal1X128
-	);
+		feeGrowthGlobal0X128,
+		feeGrowthGlobal1X128,
+	)
 
 	position.update(liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
 
-	// clear any tick data that is no longer needed
+	// Clear any tick data that is no longer needed
 	if (liquidityDelta < 0) {
 		if (flippedLower) {
 			ticks.clear(tickLower);
@@ -294,32 +287,41 @@ func (p *Pool) _updatePosition(
 	return position
 }
 
+// Mints liquidity for the given recipient in the given tick range (either 
+// a new position or increases the liquidity of an existing position)
 //
-func (p *Pool) Mint(
-	recipient string,
-	tickLower,
-	tickUpper int,
-	amount *big.Int,
-	// data []byte,
-) (amount0, amount1 *big.Int) {
+// Arguments:
+// recipient -- the recipient of the minted liquidity
+// tickLower -- the lower tick of the position's tick range
+// tickUpper -- the upper tick of the position's tick range
+// amount    -- the amount of liquidity to mint
+//
+// Returns:
+// amount0   -- the amount of token0 to transfer to the recipient
+// amount1   -- the amount of token1 to transfer to the recipient
+func (p *Pool) Mint(recipient string, tickLower, tickUpper int, amount *big.Int) (amount0, amount1 *big.Int) {
+	// Quick sanity checks
 	checkTicks(tickLower, tickUpper)
 	if amount.Cmp(big.NewInt(0)) <= 0 {
 		panic()
 	}
 
-	_, amount0, amount1 := _modifyPosition(
-		ModifyPositionParams{
-			owner: recipient,
-			tickLower: tickLower,
-			tickUpper: tickUpper,
-			liquidityDelta: amount
-		}
-	);
+	_, amount0, amount1 := modifyPosition(
+		&ModifyPositionParams{
+			owner:          recipient,
+			tickLower:      tickLower,
+			tickUpper:      tickUpper,
+			liquidityDelta: amount,
+		})
 
 	balance0Before := new(big.Int)
 	balance1Before := new(big.Int)
-	if (amount0 > 0) balance0Before = p.Balance0
-	if (amount1 > 0) balance1Before = p.Balance1
+	if (amount0 > 0) {
+		balance0Before = p.Balance0
+	}
+	if (amount1 > 0) {
+		balance1Before = p.Balance1
+	}
 	// IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0, amount1, data);
 	// if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
 	// if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
@@ -366,17 +368,13 @@ func (p *Pool) Collect(
 }
 
 // 
-func (p *Pool) Burn(
-	tickLower,
-	tickUpper int,
-	amount *big.Int,
-) (amount0, amount1 *big.Int) {
+func (p *Pool) Burn(tickLower, tickUpper int, amount *big.Int) (amount0, amount1 *big.Int) {
 	position, amount0, amount1 := _modifyPosition(
-		ModifyPositionParams{
+		&ModifyPositionParams{
 			owner: msg.sender,
 			tickLower: tickLower,
 			tickUpper: tickUpper,
-			liquidityDelta: new(big.Int).Neg(amount)
+			liquidityDelta: new(big.Int).Neg(amount),
 		}
 	)
 
@@ -391,36 +389,28 @@ func (p *Pool) Burn(
 }
 
 struct SwapCache {
-	// the protocol fee for the input token
+	// The protocol fee for the input token.
 	FeeProtocol int
-	// liquidity at the beginning of the swap
+	// The liquidity at the beginning of the swap.
 	LiquidityStart *big.Int
-	// the timestamp of the current block
-	BlockTimestamp int
-	// the current value of the tick accumulator, computed only if we cross an initialized tick
-	TickCumulative int
-	// the current value of seconds per liquidity accumulator, computed only if we cross an initialized tick
-	SecondsPerLiquidityCumulativeX128 *big.Int
-	// whether we've computed and cached the above two accumulators
-	ComputedLatestObservation bool
 }
 
-// the top level state of the swap, the results of which are recorded in storage
-// at the end
+// The top level state of the swap, the results of which are recorded in storage
+// at the end.
 struct SwapState {
-	// the amount remaining to be swapped in/out of the input/output asset
+	// The amount remaining to be swapped in/out of the input/output asset.
 	AmountSpecifiedRemaining *big.Int
-	// the amount already swapped out/in of the output/input asset
+	// The amount already swapped out/in of the output/input asset.
 	AmountCalculated *big.Int
-	// current sqrt(price)
+	// The current sqrt(price).
 	SqrtPriceX96 *big.Int
-	// the tick associated with the current price
+	// The tick associated with the current price.
 	Tick int
-	// the global fee growth of the input token
+	// The global fee growth of the input token.
 	FeeGrowthGlobalX128 *big.Int
-	// amount of input token paid as protocol fee
+	// The amount of the input token paid as protocol fee.
 	ProtocolFee *big.Int
-	// the current liquidity in range
+	// The current liquidity in range.
 	Liquidity *big.Int
 }
 
@@ -475,12 +465,8 @@ func (p *Pool) Swap(
 
 	cache := SwapCache{
 		liquidityStart: liquidity,
-		blockTimestamp: _blockTimestamp(),
 		feeProtocol: cacheFeeProtocol,
-		secondsPerLiquidityCumulativeX128: big.newInt(0),
-		tickCumulative: big.newInt(0),
-		computedLatestObservation: false
-	};
+	}
  
 	if (amountSpecified.Cmp(big.NewInt(0)) >= 1) {
 		exactInput := true
@@ -569,17 +555,7 @@ func (p *Pool) Swap(
 				// Check for the placeholder value, which we replace with the 
 				// actual value the first time the swap crosses an initialized 
 				/// tick
-				if (!cache.computedLatestObservation) {
-					cache.tickCumulative, cache.secondsPerLiquidityCumulativeX128 = observations.observeSingle(
-						cache.blockTimestamp,
-						0,
-						slot0Start.tick,
-						slot0Start.observationIndex,
-						cache.liquidityStart,
-						slot0Start.observationCardinality
-					);
-					cache.computedLatestObservation = true
-				}
+				
 				tempFeeGrowthGlobal0X128 := state.feeGrowthGlobalX128
 				tempFeeGrowthGlobal1X128 := p.feeGrowthGlobalX128
 				if (zeroForOne) {
@@ -594,9 +570,6 @@ func (p *Pool) Swap(
 					step.tickNext,
 					tempFeeGrowthGlobal0X128,
 					tempFeeGrowthGlobal1X128,
-					cache.secondsPerLiquidityCumulativeX128,
-					cache.tickCumulative,
-					cache.blockTimestamp
 				)
 
 				state.liquidity = liquidityMath.AddDelta(state.liquidity, liquidityNet);
@@ -616,20 +589,9 @@ func (p *Pool) Swap(
 
 	// update tick and write an oracle entry if the tick change
 	if (state.tick != slot0Start.tick) {
-		observationIndex, observationCardinality := observations.write(
-			slot0Start.observationIndex,
-			cache.blockTimestamp,
-			slot0Start.tick,
-			cache.liquidityStart,
-			slot0Start.observationCardinality,
-			slot0Start.observationCardinalityNext
-		)
-		slot0.sqrtPriceX96, slot0.tick, slot0.observationIndex, slot0.observationCardinality := (
-			state.sqrtPriceX96,
-			state.tick,
-			observationIndex,
-			observationCardinality
-		)
+		
+		slot0.sqrtPriceX96 = state.sqrtPriceX96
+		slot0.tick = state.tick
 	} else {
 		// Otherwise just update the price
 		slot0.sqrtPriceX96 = state.sqrtPriceX96;
@@ -677,19 +639,7 @@ func (p *Pool) Swap(
 	}
 }
 
-func Make (tick int, liquidity []*position.Position) *Pool {
-	slot0 := Slot0{
-		// The current price
-		SqrtPriceX96 := 
-		// The current tick
-		Tick := tick
-		// The current protocol fee as a percentage of the swap fee taken on withdrawal
-		// Represented as an integer denominator (1/x)%
-		FeeProtocol 
-	}
-	for position in positions {
+// func Make (tick int, liquidity []*position.Position) *Pool {
 
-	}
-
-}
+// }
 
