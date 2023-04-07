@@ -15,44 +15,52 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 )
 
-// Calculates floor(a×b÷denominator) for *big.Ints. Panics if any of the
+// Calculates floor(a * b / c) for *big.Ints. Panics if any of the
 // arguments are negative, if the result would overflow a uint256 or if
 // denominator == 0.
 //
-// multiplicand is the multiplicand.
-// multiplier is the multiplier.
-// denominator is the denominator.
+// Arguments:
+// multiplicand -- the multiplicand (a)
+// multiplier   -- the multiplier (b)
+// denominator  -- the denominator (c)
+//
+// Returns:
+// result       -- the result of the calculation floor(a * b / c)
 func MulDiv(
 	multiplicand,
 	multiplier,
 	denominator *big.Int,
 ) (result *big.Int) {
-	// Check arguments
+	// Check arguments.
 	checkArgs(multiplicand, multiplier, denominator)
 
 	product := new(big.Int).Mul(multiplicand, multiplier)
 	result = new(big.Int).Div(product, denominator)
 
-	// Check whether result could fit in a uint256
+	// Check whether result could fit in a uint256.
 	if result.Cmp(constants.MaxUint256) >= 1 {
 		panic("fullMath.MulDiv: Overflow")
 	}
 	return result
 }
 
-// Calculates ceil(a×b÷denominator) for *big.Ints. Panics if any of the
+// Calculates ceil(a * b / c) for *big.Ints. Panics if any of the
 // arguments are negative, if the result would overflow a uint256 or if
 // denominator == 0.
 //
-// multiplicand is the multiplicand.
-// multiplier is the multiplier.
-// denominator is the denominator.
+// Arguments:
+// multiplicand -- the multiplicand (a)
+// multiplier   -- the multiplier (b)
+// denominator  -- the denominator (c)
+//
+// Returns:
+// result       -- the result of the calculation ceil(a * b / c)
 func MulDivRoundingUp(
 	multiplicand,
 	multiplier,
 	denominator *big.Int,
 ) (result *big.Int) {
-	// Check arguments
+	// Check arguments.
 	checkArgs(multiplicand, multiplier, denominator)
 
 	product := new(big.Int).Mul(multiplicand, multiplier)
@@ -62,7 +70,7 @@ func MulDivRoundingUp(
 		quotient.Add(quotient, big.NewInt(1))
 	}
 
-	// Check whether result could fit in a uint256
+	// Check whether result could fit in a uint256.
 	if quotient.Cmp(constants.MaxUint256) >= 1 {
 		panic("fullMath.MulDivRoundingUp: Overflow")
 	}
@@ -76,12 +84,12 @@ func checkArgs(
 	multiplier,
 	denominator *big.Int,
 ) {
-	// Check for division by zero
+	// Check for division by zero.
 	if denominator.Cmp(big.NewInt(0)) == 0 {
 		panic("fullMath: Division by zero")
 	}
 
-	// Check for negative arguments (not supported by Uniswap)
+	// Check for negative arguments (not supported by Uniswap).
 	if multiplicand.Cmp(big.NewInt(0)) <= -1 {
 		panic("fullMath: multiplicand < 0")
 	}
