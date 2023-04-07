@@ -14,14 +14,14 @@ import (
 // Adds a signed liquidity delta to liquidity and reverts if it overflows or
 // underflows.
 func AddDelta(x, y *big.Int) (delta *big.Int) {
-	// Ensure that x > 0
+	// Ensure that x > 0.
 	if x.Cmp(big.NewInt(0)) <= -1 {
 		panic("liquidityMath.AddDelta: x must be greater than 0")
 	}
 
 	delta = new(big.Int).Add(x, y)
 
-	// Check whether result could fit in a uint128
+	// Check whether result could fit in a uint128.
 	if delta.Cmp(constants.MaxUint128) >= 1 {
 		panic("liquidityMath.AddDelta: Overflow")
 	}
