@@ -9,6 +9,26 @@ import (
 // Computes  the sqrt price for ticks of size 1.0001, i.e. sqrt(1.0001^tick)
 // Supports prices between 2**-128 and 2**128
 func getSqrtRatioAtTick(tick int) *big.Int {
+
+	// price := big.NewFloat(1.0001)
+	// absTick := tick
+	// if tick < 0 {
+	// 	absTick = -tick
+	// }
+	// if absTick == 0 {
+	// 	sqrtPrice = big.NewFloat(1)
+	// } else if absTick == 1 {
+	// 	sqrtPrice = new(big.Float).Sqrt(price)
+	// } else{
+	// 	for i := 1; i < absTick; i++ {
+	// 		price = new(big.Float).Mul(price, big.NewFloat(1.0001))
+	// 	}
+	// }
+
+	// if tick < 0 {
+	// 	sqrtPrice = new(big.Float).Quo(big.NewFloat(1), sqrtPrice)
+	// }
+
 	absTick := tick
 	if tick < 0 {
 		absTick = -tick
