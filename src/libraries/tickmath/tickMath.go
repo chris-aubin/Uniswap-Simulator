@@ -1,7 +1,6 @@
 package tickMath
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
@@ -16,8 +15,6 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 	}
 
 	if absTick > constants.MaxTick {
-		fmt.Println(absTick)
-		fmt.Println(constants.MaxTick)
 		panic("tickMath.getSqrtRatioAtTick: INVALID_TICK")
 	}
 
@@ -121,7 +118,7 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 // Calculates the greatest tick value such that getRatioAtTick(tick) <= ratio
 // Accepts sqrtPriceX96, the sqrt ratio for which to compute the tick
 // Returns the greatest tick for which the ratio is less than or equal to the input ratio
-func getTickAtSqrtRatio(sqrtPriceX96 *big.Int) *big.Int {
+func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 	if (sqrtPriceX96.Cmp(constants.MaxSqrtRatio) != -1) || (sqrtPriceX96.Cmp(constants.MinSqrtRatioBig) != 1) {
 		panic("tickMath.getTickAtSqrtRatio: INVALID_SQRT_RATIO")
 	}
@@ -132,26 +129,25 @@ func getTickAtSqrtRatio(sqrtPriceX96 *big.Int) *big.Int {
 	r := new(big.Int).Lsh(sqrtPriceX96, 32)
 	msb := big.NewInt(0)
 	for i := 7; i > 0; i-- {
-		cmp := ratio.Cmp(constants.MaxUints[i])
-		if cmp == -1 {
+		cmp := r.Cmp(constants.MaxUints[i])
+		if cmp <= -1 {
 			cmp = 0
 		}
 		f := new(big.Int).Lsh(big.NewInt(int64(cmp)), uint(i))
 		msb = new(big.Int).Or(msb, f)
 		r = new(big.Int).Rsh(r, uint(f.Int64()))
 	}
-	cmp := ratio.Cmp(constants.MaxUints[0])
+	cmp := r.Cmp(constants.MaxUints[0])
 	if cmp == -1 {
 		cmp = 0
 	}
 	f := new(big.Int).Lsh(big.NewInt(int64(cmp)), 0)
 	msb = new(big.Int).Or(msb, f)
-
-	dif := new(big.Int).Sub(big.NewInt(127), msb)
-	if msb.Cmp(big.NewInt(128)) != -1 {
-		r = new(big.Int).Lsh(ratio, uint(dif.Int64()))
-	} else {
+	dif := new(big.Int).Sub(msb, big.NewInt(127))
+	if msb.Cmp(big.NewInt(128)) >= 0 {
 		r = new(big.Int).Rsh(ratio, uint(dif.Int64()))
+	} else {
+		r = new(big.Int).Lsh(ratio, uint(dif.Int64()))
 	}
 
 	log_2_temp := new(big.Int).Sub(msb, big.NewInt(128))
@@ -167,21 +163,21 @@ func getTickAtSqrtRatio(sqrtPriceX96 *big.Int) *big.Int {
 	log_sqrt10001_multiplicand, _ := new(big.Int).SetString("255738958999603826347141", 10)
 	log_sqrt10001 := new(big.Int).Mul(log_2, log_sqrt10001_multiplicand)
 
-	tickLow_multiplicand, _ := new(big.Int).SetString("3402992956809132418596140100660247210", 10)
-	tickLow := new(big.Int).Rsh(new(big.Int).Add(log_sqrt10001, tickLow_multiplicand), 128)
+	tickLow_sub, _ := new(big.Int).SetString("3402992956809132418596140100660247210", 10)
+	tickLow := new(big.Int).Rsh(new(big.Int).Sub(log_sqrt10001, tickLow_sub), 128)
 
-	tickHigh_multiplicand, _ := new(big.Int).SetString("291339464771989622907027621153398088495", 10)
-	tickHigh := new(big.Int).Rsh(new(big.Int).Add(log_sqrt10001, tickHigh_multiplicand), 128)
+	tickHigh_add, _ := new(big.Int).SetString("291339464771989622907027621153398088495", 10)
+	tickHigh := new(big.Int).Rsh(new(big.Int).Add(log_sqrt10001, tickHigh_add), 128)
 
 	if tickLow == tickHigh {
-		return tickLow
+		return int(tickLow.Int64())
 	}
 
-	sqrtRatio := getSqrtRatioAtTick(int(tickHigh.Int64()))
+	sqrtRatio := GetSqrtRatioAtTick(int(tickHigh.Int64()))
 	if sqrtRatio.Cmp(sqrtPriceX96) <= 0 {
-		return tickHigh
+		return int(tickHigh.Int64())
 	} else {
-		return tickLow
+		return int(tickLow.Int64())
 	}
 }
 
@@ -191,3 +187,12 @@ func mulShift(multiplier *big.Int, multiplicand string) *big.Int {
 	result := new(big.Int).Rsh(productBig, 128)
 	return result
 }
+
+// func hexToBigFloat(hex string) *big.Float {
+// 	intTemp, _ := new(big.Int).SetString(hex, 16)
+// 	floatTemp, _ := new(big.Float).SetInt(bigInt)
+// 	floatQ128 := new(big.Float).SetInt(constants.Q128)
+// 	result := new(big.Float).Quo(floatTemp, floatQ128)
+// 	return result
+
+// }
