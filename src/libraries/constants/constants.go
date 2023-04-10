@@ -21,12 +21,13 @@ var (
 	// MaxTick as a big.Int for use in calculations.
 	MaxTickBig = big.NewInt(887272)
 	// MinSqrtRatio as a big.Int for use in calculations.
-	MinSqrtRatioBig = big.NewInt(4295128739)
+	MinSqrtRatioBig = new(big.Int)
 	// The maximum value that can be returned by getSqrtRatioAtTick.
 	// Equivalent to getSqrtRatioAtTick(MaxTick).
 	MaxSqrtRatio = new(big.Int)
 	// For handling binary fixed point numbers, see:
 	// https://en.wikipedia.org/wiki/Q_(number_format)
+	Q256 = new(big.Int)
 	Q128 = new(big.Int)
 	Q96  = new(big.Int)
 	// Maximum unsigned integers for given number of bits.
@@ -57,6 +58,7 @@ var (
 // Initialise the big.Ints.
 func init() {
 	MaxSqrtRatio.SetString("1461446703485210103287273052203988822378723970342", 10)
+	Q256.SetString("10000000000000000000000000000000000000000000000000000000000000000", 16)
 	Q128.SetString("100000000000000000000000000000000", 16)
 	Q96.SetString("1000000000000000000000000", 16)
 	MaxUint256.SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
