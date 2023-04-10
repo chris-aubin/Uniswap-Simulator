@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	// Test inputs for the getSqrtRatioAtTick function.
+	// Test inputs for the getSqrtRatioAtTick function. Generated using python.
+	// Just random numbers between -MaxTick and MaxTick.
 	getSqrtRatioAtTickInputs = [...]int{
 		-605490,
 		306435,
@@ -30,7 +31,9 @@ var (
 		-69784,
 	}
 	// Test outputs for the getSqrtRatioAtTick function. To be converted to
-	// big.Ints.
+	// big.Ints. Generated outputs by redeploying the TickMath contract on
+	// remix, changing the functions to public, and calling them with the
+	// inputs above.
 	getSqrtRatioAtTickOutputsStrings = [...]string{
 		"5642721942098613",
 		"357024793347176040098758073744472598",
@@ -54,7 +57,8 @@ var (
 		"2418883986714335308443808732",
 	}
 	// Test inputs for the getTickAtSqrtRatio function. To be converted to
-	// big.Ints.
+	// big.Ints. Generated using python. Just random numbers between
+	// MinSqrtRatio and MaxSqrtRatio.
 	getTickAtSqrtRatioInputsStrings = [...]string{
 		"3077995146750009554232817326544692445012838697",
 		"1171870553120907383840441369152020973416515670267",
@@ -77,7 +81,9 @@ var (
 		"1165407617432778077899261458006446412740509115898",
 		"536552080601665919177922730362914296449667818336",
 	}
-	// Test outputs for the getTickAtSqrtRatio function.
+	// Test outputs for the getTickAtSqrtRatio function. Generated outputs by
+	// redeploying the TickMath contract on remix, changing the functions to
+	// public, and calling them with the inputs above.
 	getTickAtSqrtRatioOutputs = [...]int{
 		764007,
 		882855,
@@ -106,6 +112,7 @@ var (
 	getTickAtSqrtRatioInputs []*big.Int
 )
 
+// init is used to initialize the big.Int slices used in the tests.
 func init() {
 	for _, input := range getTickAtSqrtRatioInputsStrings {
 		temp := new(big.Int)
@@ -120,6 +127,7 @@ func init() {
 	}
 }
 
+// TestGetSqrtRatioAtTick tests the GetSqrtRatioAtTick function.
 func TestGetSqrtRatioAtTick(t *testing.T) {
 	for i, input := range getSqrtRatioAtTickInputs {
 		output := GetSqrtRatioAtTick(input)
@@ -129,6 +137,7 @@ func TestGetSqrtRatioAtTick(t *testing.T) {
 	}
 }
 
+// TestGetTickAtSqrtRatio tests the GetTickAtSqrtRatio function.
 func TestGetTickAtSqrtRatio(t *testing.T) {
 	for i, input := range getTickAtSqrtRatioInputs {
 		output := GetTickAtSqrtRatio(input)
