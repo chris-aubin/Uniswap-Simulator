@@ -184,7 +184,7 @@ func GetAmount0Delta(
 	numerator2 := new(big.Int).Sub(sqrtRatioBX96, sqrtRatioAX96)
 
 	if sqrtRatioAX96.Cmp(big.NewInt(0)) <= 0 {
-		panic("SQRTPRICE: Invalid input")
+		panic("sqrtPriceMath.GetAmount0Delta: Invalid prices")
 	}
 
 	if roundUp {
