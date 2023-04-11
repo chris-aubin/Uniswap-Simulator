@@ -192,7 +192,8 @@ func TestGetNextSqrtPriceFromOutput3(t *testing.T) {
 	price.SetString("20282409603651670423947251286016", 10)
 	liquidity := big.NewInt(1024)
 	amountOut := big.NewInt(4)
-	GetNextSqrtPriceFromOutput(price, liquidity, amountOut, false)
+	result := GetNextSqrtPriceFromOutput(price, liquidity, amountOut, false)
+	fmt.Printf("Got %v; want %v", result, "panic")
 }
 
 // Fails if output amount is greater than virtual reserves of token0
@@ -208,27 +209,12 @@ func TestGetNextSqrtPriceFromOutput4(t *testing.T) {
 	price.SetString("20282409603651670423947251286016", 10)
 	liquidity := big.NewInt(1024)
 	amountOut := big.NewInt(5)
-	GetNextSqrtPriceFromOutput(price, liquidity, amountOut, false)
-}
-
-// Fails if output amount is exactly the virtual reserves of token1
-func TestGetNextSqrtPriceFromOutput5(t *testing.T) {
-	fmt.Println("GetNextSqrtPriceFromOutput: Fails if output amount is exactly the virtual reserves of token1")
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("GetNextSqrtPriceFromOutput: GetNextSqrtPriceFromInput did not panic when output amount was exactly the virtual reserves of token1.")
-		}
-	}()
-
-	price := new(big.Int)
-	price.SetString("20282409603651670423947251286016", 10)
-	liquidity := big.NewInt(1024)
-	amountOut := big.NewInt(262144)
-	GetNextSqrtPriceFromOutput(price, liquidity, amountOut, true)
+	result := GetNextSqrtPriceFromOutput(price, liquidity, amountOut, false)
+	fmt.Printf("Got %v; want %v", result, "panic")
 }
 
 // Fails if output amount is greater than virtual reserves of token1
-func TestGetNextSqrtPriceFromOutput6(t *testing.T) {
+func TestGetNextSqrtPriceFromOutput5(t *testing.T) {
 	fmt.Println("GetNextSqrtPriceFromOutput: Fails if output amount is greater than virtual reserves of token1")
 	defer func() {
 		if r := recover(); r == nil {
@@ -240,7 +226,25 @@ func TestGetNextSqrtPriceFromOutput6(t *testing.T) {
 	price.SetString("20282409603651670423947251286016", 10)
 	liquidity := big.NewInt(1024)
 	amountOut := big.NewInt(262145)
-	GetNextSqrtPriceFromOutput(price, liquidity, amountOut, true)
+	result := GetNextSqrtPriceFromOutput(price, liquidity, amountOut, true)
+	fmt.Printf("Got %v; want %v", result, "panic")
+}
+
+// Fails if output amount is exactly the virtual reserves of token1
+func TestGetNextSqrtPriceFromOutput6(t *testing.T) {
+	fmt.Println("GetNextSqrtPriceFromOutput: Fails if output amount is exactly the virtual reserves of token1")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("GetNextSqrtPriceFromOutput: GetNextSqrtPriceFromInput did not panic when output amount was exactly the virtual reserves of token1.")
+		}
+	}()
+
+	price := new(big.Int)
+	price.SetString("20282409603651670423947251286016", 10)
+	liquidity := big.NewInt(1024)
+	amountOut := big.NewInt(262144)
+	result := GetNextSqrtPriceFromOutput(price, liquidity, amountOut, true)
+	fmt.Printf("Got %v; want %v", result, "panic")
 }
 
 // Succeeds if output amount is just less than the virtual reserves of token1
