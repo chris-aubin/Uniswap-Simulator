@@ -34,7 +34,8 @@ func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int,
 
 	if add {
 		product := new(big.Int).Mul(amount, sqrtPX96)
-		if new(big.Int).Div(product, sqrtPX96).Cmp(amount) == 0 {
+		// Simulate overflow
+		if product.Cmp(constants.MaxUint256) <= 0 {
 			denominator := new(big.Int).Add(numerator1, product)
 			if denominator.Cmp(numerator1) >= 0 {
 				// In this case the result always fits in 160 bits (this is not
@@ -53,11 +54,15 @@ func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int,
 		// We must also check that the denominator does not underflow.
 		// (this is not an issue in Go when using big.Ints, but in the name of
 		// accuracy we will simulate this issue).
-		if (new(big.Int).Div(product, sqrtPX96).Cmp(amount) == 0) && (numerator1.Cmp(product) >= 1) {
+		if (product.Cmp(constants.MaxUint256) <= 0) && (numerator1.Cmp(product) >= 1) {
 			denominator := new(big.Int).Sub(numerator1, product)
-			return fullMath.MulDivRoundingUp(numerator1, sqrtPX96, denominator)
+			result := fullMath.MulDivRoundingUp(numerator1, sqrtPX96, denominator)
+			if result.Cmp(constants.MaxUint160) >= 1 {
+				panic("sqrtPriceMath.GetNextSqrtPriceFromAmount0RoundingUp: Overflow")
+			}
+			return result
 		} else {
-			panic("SQRTPRICE: Overflow")
+			panic("sqrtPriceMath.GetNextSqrtPriceFromAmount0RoundingUp: Overflow")
 		}
 	}
 }
@@ -73,33 +78,32 @@ func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int,
 // amount is how much of token1 to add, or remove, from virtual reserves
 // add is a bool that indicates whether to add, or remove, the amount of token1
 // Returns the price after adding or removing `amount`
-func GetNextSqrtPriceFromAmount1RoundingDown(
-	sqrtPX96,
-	liquidity,
-	amount *big.Int,
-	add bool,
-) *big.Int {
+func GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amount *big.Int, add bool) *big.Int {
 	// if we're adding (subtracting), rounding down requires rounding the quotient down (up)
 	// in both cases, avoid a mulDiv for most inputs
 	if add {
 		quotient := new(big.Int)
-		if amount.Cmp(constants.MaxUint160) >= 0 {
+		if amount.Cmp(constants.MaxUint160) <= 0 {
 			quotient = quotient.Div(new(big.Int).Lsh(amount, 96), liquidity)
 		} else {
-			quotient = fullMath.MulDiv(amount, big.NewInt(96), liquidity)
+			quotient = fullMath.MulDiv(amount, constants.Q96, liquidity)
 		}
 
+		result := new(big.Int).Add(sqrtPX96, quotient)
+		if result.Cmp(constants.MaxUint160) >= 1 {
+			panic("sqrtPriceMath.GetNextSqrtPriceFromAmount1RoundingDown: Overflow")
+		}
 		return new(big.Int).Add(sqrtPX96, quotient)
 	} else {
 		quotient := new(big.Int)
-		if amount.Cmp(constants.MaxUint160) >= 0 {
+		if amount.Cmp(constants.MaxUint160) <= 0 {
 			quotient = unsafeMath.DivRoundingUp(new(big.Int).Lsh(amount, 96), liquidity)
 		} else {
-			quotient = fullMath.MulDivRoundingUp(amount, big.NewInt(96), liquidity)
+			quotient = fullMath.MulDivRoundingUp(amount, constants.Q96, liquidity)
 		}
 
 		if sqrtPX96.Cmp(quotient) <= 0 {
-			panic("SQRTPRICE: Underflow")
+			panic("sqrtPriceMath.GetNextSqrtPriceFromAmount1RoundingDown: Underflow")
 		}
 		// always fits 160 bits
 		return new(big.Int).Sub(sqrtPX96, quotient)
@@ -150,9 +154,9 @@ func GetNextSqrtPriceFromOutput(
 
 	// Round to make sure that we pass the target price
 	if zeroForOne {
-		return GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amountOut, false)
-	} else {
 		return GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amountOut, false)
+	} else {
+		return GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amountOut, false)
 	}
 }
 
