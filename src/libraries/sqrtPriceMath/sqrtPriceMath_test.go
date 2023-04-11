@@ -60,14 +60,13 @@ func TestGetNextSqrtPriceFromInput3(t *testing.T) {
 
 // Fails if input amount underflows the price
 func TestGetNextSqrtPriceFromInput4(t *testing.T) {
-	fmt.Println("GetNextSqrtPriceFromInput: Fails if input amount underflows the price")
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("GetNextSqrtPriceFromInput did not panic when input amount underflows the price.")
-		}
-	}()
+	fmt.Println("GetNextSqrtPriceFromInput: Any input amount cannot underflow the price")
 
-	GetNextSqrtPriceFromInput(big.NewInt(1), big.NewInt(1), big.NewInt(1).Lsh(big.NewInt(1), 255), true)
+	result := GetNextSqrtPriceFromInput(big.NewInt(1), big.NewInt(1), big.NewInt(1).Lsh(big.NewInt(1), 255), true)
+	expected := big.NewInt(1)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("GetNextSqrtPriceFromInput: Got %v; want %v", result, expected)
+	}
 }
 
 // Returns input price if amount in is zero and zeroForOne = true
