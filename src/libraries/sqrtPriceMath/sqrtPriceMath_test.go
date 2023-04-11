@@ -368,7 +368,13 @@ func TestGetAmount0Delta2(t *testing.T) {
 
 // Returns 0.1 amount1 for price of 1 to 1.21
 func TestGetAmount0Delta3(t *testing.T) {
-	fmt.Println("GetAmount0Delta: Returns 0.1 amount1 for price of 1 to 1.21")
+	// fmt.Println("GetAmount0Delta: Returns 0.1 amount1 for price of 1 to 1.21")
+	// fmt.Printf("utilities.EncodePriceSqrt(121,100): %v", utilities.EncodePriceSqrt(big.NewInt(121), big.NewInt(100)))
+	// fmt.Println()
+	// fmt.Printf("utilities.EncodePriceSqrt(1,1): %v", utilities.EncodePriceSqrt(big.NewInt(1), big.NewInt(1)))
+	// fmt.Println()
+	// fmt.Printf("constants.Q96: %v", constants.Q96)
+	// fmt.Println()
 	amount0 := GetAmount0Delta(utilities.EncodePriceSqrt(big.NewInt(1), big.NewInt(1)), utilities.EncodePriceSqrt(big.NewInt(121), big.NewInt(100)), TEN18, true)
 	expected := new(big.Int)
 	expected.SetString("90909090909090909", 10)

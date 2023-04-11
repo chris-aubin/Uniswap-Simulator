@@ -250,7 +250,7 @@ func getAmount1Delta(
 	sqrtRatioBX96,
 	liquidity *big.Int,
 ) (amount1 *big.Int) {
-	if liquidity.Cmp(big.NewInt(0)) < 0 {
+	if liquidity.Cmp(big.NewInt(0)) <= -1 {
 		return new(big.Int).Neg(GetAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, new(big.Int).Neg(liquidity), false))
 	} else {
 		return GetAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, liquidity, true)
