@@ -11,7 +11,7 @@ var (
 	MaxUint128, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffff", 16)
 )
 
-// Info stored for each initialised tick
+// Info stored for each initialized tick
 type Tick struct {
 	// The total position liquidity that references this tick.
 	LiquidityGross *big.Int
@@ -20,16 +20,16 @@ type Tick struct {
 	LiquidityNet *big.Int
 	// Fee growth per unit of liquidity on the _other_ side of this tick
 	// (relative to the current tick). Only has relative meaning, not absolute —
-	// the value depends on when the tick is initialised.
+	// the value depends on when the tick is initialized.
 	FeeGrowthOutside0X128 *big.Int
 	FeeGrowthOutside1X128 *big.Int
-	// True iff the tick is initialised, i.e. the value is exactly equivalent to
+	// True iff the tick is initialized, i.e. the value is exactly equivalent to
 	// the expression liquidityGross != 0. These 8 bits are set to prevent fresh
-	//  stores when crossing newly initialised ticks
-	Initialised bool
+	//  stores when crossing newly initialized ticks
+	Initialized bool
 }
 
-// Contains all all tick information for initialised ticks
+// Contains all all tick information for initialized ticks
 type Ticks struct {
 	// Maps tick index to tick data
 	TickData map[int]*Tick
@@ -37,9 +37,9 @@ type Ticks struct {
 
 // Derives max liquidity per tick from given tick spacing
 // Accepts tickSpacing, the amount of required tick separation. A tickSpacing of 3
-// requires ticks to be initialised every 3rd tick i.e., ..., -6, -3, 0, 3, 6, ...
+// requires ticks to be initialized every 3rd tick i.e., ..., -6, -3, 0, 3, 6, ...
 // Returns the max liquidity per tick
-func (t *Ticks) tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
+func tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 	minTick := (constants.MinTick / tickSpacing) * tickSpacing
 	maxTick := (constants.MaxTick / tickSpacing) * tickSpacing
 	numTicks := ((maxTick - minTick) / tickSpacing) + 1
@@ -91,7 +91,7 @@ func (t *Ticks) getFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 	return feeGrowthInside0X128, feeGrowthInside1X128
 }
 
-// Updates a tick and returns true if the tick was flipped from initialised to uninitialised, or vice versa
+// Updates a tick and returns true if the tick was flipped from initialized to uninitialized, or vice versa
 // Accepts tick, the index of the tick that will be updated
 // Accepts tickCurrent, the index of the current tick
 // Accepts liquidityDelta, the (new) amount of liquidity to be added (subtracted) when tick is crossed from left to right (right to left)
@@ -99,7 +99,7 @@ func (t *Ticks) getFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 // Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
 // Accepts upper, a boolean that is true for updating a position's upper tick, or false for updating a position's lower tick
 // Accepts maxLiquidity, the maximum liquidity allocation for a single tick
-// Returns flipped, a boolean that indicates whether the tick was flipped from initialised to uninitialised, or vice versa
+// Returns flipped, a boolean that indicates whether the tick was flipped from initialized to uninitialized, or vice versa
 func (t *Ticks) update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128, maxLiquidity *big.Int, upper bool) bool {
 	info := t.TickData[tick]
 
@@ -113,12 +113,12 @@ func (t *Ticks) update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 	flipped := (liquidityGrossAfter.Cmp(big.NewInt(0)) == 1) != (liquidityGrossBefore.Cmp(big.NewInt(0)) == 1)
 
 	if liquidityGrossBefore.Cmp(big.NewInt(0)) == 1 {
-		// By convention, Uniswap assumes that all growth before a tick was initialised happened _below_ the tick
+		// By convention, Uniswap assumes that all growth before a tick was initialized happened _below_ the tick
 		if tick <= tickCurrent {
 			info.FeeGrowthOutside0X128 = feeGrowthGlobal0X128
 			info.FeeGrowthOutside1X128 = feeGrowthGlobal1X128
 		}
-		info.Initialised = true
+		info.Initialized = true
 	}
 
 	info.LiquidityGross = liquidityGrossAfter
