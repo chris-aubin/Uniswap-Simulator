@@ -94,7 +94,8 @@ func TestGetNextSqrtPriceFromInput7(t *testing.T) {
 	fmt.Println("GetNextSqrtPriceFromInput: Returns the minimum price for max inputs")
 	liquidity := constants.MaxUint128
 	temp := new(big.Int).Lsh(liquidity, 96)
-	maxAmountNoOverflow := new(big.Int).Div(temp, constants.MaxUint160)
+	temp = new(big.Int).Div(temp, constants.MaxUint160)
+	maxAmountNoOverflow := new(big.Int).Sub(constants.MaxUint256, temp)
 	result := GetNextSqrtPriceFromInput(constants.MaxUint160, liquidity, maxAmountNoOverflow, true)
 	if result.Cmp(big.NewInt(1)) != 0 {
 		t.Errorf("GetNextSqrtPriceFromInput: Got %v; want %v", result, 1)
