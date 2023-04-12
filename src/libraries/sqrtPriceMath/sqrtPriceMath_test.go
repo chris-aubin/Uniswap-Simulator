@@ -133,7 +133,7 @@ func TestGetNextSqrtPriceFromInput9(t *testing.T) {
 func TestGetNextSqrtPriceFromInput10(t *testing.T) {
 	fmt.Println("GetNextSqrtPriceFromInput: amountIn > type(uint96).max and zeroForOne = true")
 	sqrtP := utilities.EncodePriceSqrt(big.NewInt(1), big.NewInt(1))
-	liquidity := TEN18
+	liquidity := new(big.Int).Mul(TEN18, big.NewInt(10))
 	amountIn := new(big.Int).Lsh(big.NewInt(1), 100)
 	expected := new(big.Int)
 	expected.SetString("624999999995069620", 10)
