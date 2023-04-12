@@ -227,7 +227,7 @@ func GetAmount1Delta(
 // liquidity is the change in liquidity for which to compute the amount0 delta
 // Returns amount0, the amount of token0 corresponding to the passed
 // liquidityDelta between the two prices.
-func getAmount0Delta(
+func GetAmount0DeltaNoBool(
 	sqrtRatioAX96,
 	sqrtRatioBX96,
 	liquidity *big.Int,
@@ -245,7 +245,7 @@ func getAmount0Delta(
 // liquidity is the change in liquidity for which to compute the amount1 delta
 // Returns amount0, the amount of token1 corresponding to the passed
 // liquidityDelta between the two prices.
-func getAmount1Delta(
+func GetAmount1DeltaNoBool(
 	sqrtRatioAX96,
 	sqrtRatioBX96,
 	liquidity *big.Int,
