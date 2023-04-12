@@ -30,7 +30,8 @@ type ProtocolFees struct {
 
 // Pool state.
 type Pool struct {
-	Slot0                Slot0
+	TickSpacing		  	 int
+	Slot0                *Slot0
 	// FeeGrowthGlobal0X128 and FeeGrowthGlobal1X128 represent the total amount 
 	// of fees that have been earned per unit of virtual liquidity (L), over the
 	// entire history of the contract. This is the same as the total amount of 
@@ -38,12 +39,12 @@ type Pool struct {
 	// was deposited when the contract was first initialized.
 	FeeGrowthGlobal0X128 *big.Int
 	FeeGrowthGlobal1X128 *big.Int
-	ProtocolFees         ProtocolFees
+	ProtocolFees         *ProtocolFees
 	Liquidity            *big.Int
 	// Tick-indexed state, as per section 6.3 in Uniswap V3 Whitepaper. This is 
 	// a mapping from tick index to a Tick struct that contains information 
 	// about that tick (see the tick package for more).
-	Ticks				 tick.Ticks
+	Ticks				 *tick.Ticks
 	// Position-indexed state, as per section 6.4 in Uniswap V3 Whitepaper. In 
 	// the deployed contract, this is a mapping from the hash of a position's
 	// owner's address, tickLower, and tickUpper (in byte form) to a Position. 
@@ -638,6 +639,7 @@ func (p *Pool) Swap(
 		// require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
 	}
 }
+
 
 // func Make (tick int, liquidity []*position.Position) *Pool {
 
