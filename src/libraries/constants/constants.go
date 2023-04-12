@@ -14,7 +14,7 @@ const (
 )
 
 // Declaring big.Ints as constants proved challenging, so they are declared as
-// variables that are just never changed after they are initialised.
+// variables that are just never changed after they are initialized.
 var (
 	// MinTick as a big.Int for use in calculations.
 	MinTickBig = big.NewInt(-887272)
