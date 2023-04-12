@@ -45,7 +45,7 @@ func TestComputeSwapStep1(t *testing.T) {
 	//     amount,
 	//     fee
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	// expect(amountIn).to.eq('9975124224178055')
 	// expect(feeAmount).to.eq('5988667735148')
@@ -104,7 +104,7 @@ func TestComputeSwapStep2(t *testing.T) {
 	//     amount,
 	//     fee
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	// expect(amountIn).to.eq('9975124224178055')
 	// expect(feeAmount).to.eq('5988667735148')
@@ -162,7 +162,7 @@ func TestComputeSwapStep3(t *testing.T) {
 	//     amount,
 	//     fee
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	//   expect(amountIn).to.eq('999400000000000000')
 	//   expect(feeAmount).to.eq('600000000000000')
@@ -220,7 +220,7 @@ func TestComputeSwapStep4(t *testing.T) {
 	//     amount,
 	//     fee
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	//   expect(amountIn).to.eq('2000000000000000000')
 	//   expect(feeAmount).to.eq('1200720432259356')
@@ -269,7 +269,7 @@ func TestComputeSwapStep5(t *testing.T) {
 	amount := new(big.Int)
 	amount.SetString("-1", 10)
 	fee := 1
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	//   expect(amountIn).to.eq('1')
 	//   expect(feeAmount).to.eq('1')
@@ -301,7 +301,7 @@ func TestComputeSwapStep6(t *testing.T) {
 	//   )
 	amountOutExpected := new(big.Int)
 	amountOutExpected.SetString("3915081100057732413702495386755767", 10)
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(big.NewInt(2), big.NewInt(1), big.NewInt(1), amountOutExpected, 1)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(big.NewInt(2), big.NewInt(1), big.NewInt(1), amountOutExpected, 1)
 
 	//   expect(amountIn).to.eq('39614081257132168796771975168')
 	//   expect(feeAmount).to.eq('39614120871253040049813')
@@ -345,7 +345,7 @@ func TestComputeSwapStep7(t *testing.T) {
 	amount := big.NewInt(10)
 	fee := 1872
 
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
 	//   expect(amountIn).to.eq('0')
 	//   expect(feeAmount).to.eq('10')
@@ -387,7 +387,7 @@ func TestComputeSwapStep8(t *testing.T) {
 	//     amountRemaining,
 	//     feePips
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(sqrtP, sqrtPTarget, liquidity, amountRemaining, feePips)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(sqrtP, sqrtPTarget, liquidity, amountRemaining, feePips)
 
 	//   expect(amountOut).to.eq(0)
 	//   expect(sqrtQ).to.eq(sqrtPTarget)
@@ -429,7 +429,7 @@ func TestComputeSwapStep9(t *testing.T) {
 	//     amountRemaining,
 	//     feePips
 	//   )
-	amountIn, amountOut, sqrtQ, feeAmount := ComputeSwapStep(sqrtP, sqrtPTarget, liquidity, amountRemaining, feePips)
+	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(sqrtP, sqrtPTarget, liquidity, amountRemaining, feePips)
 
 	//   expect(amountOut).to.eq(26214)
 	//   expect(sqrtQ).to.eq(sqrtPTarget)
