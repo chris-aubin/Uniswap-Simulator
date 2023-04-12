@@ -25,12 +25,6 @@ func init() {
 func TestComputeSwapStep1(t *testing.T) {
 	fmt.Println("Exact amount in that gets capped at price target in one for zero")
 
-	// const price = encodePriceSqrt(1, 1)
-	// const priceTarget = encodePriceSqrt(101, 100)
-	// const liquidity = expandTo18Decimals(2)
-	// const amount = expandTo18Decimals(1)
-	// const fee = 600
-	// const zeroForOne = false
 	price := utilities.EncodePriceSqrt(big.NewInt(1), big.NewInt(1))
 	priceTarget := utilities.EncodePriceSqrt(big.NewInt(101), big.NewInt(100))
 	liquidity := new(big.Int).Mul(big.NewInt(2), TEN18)
@@ -38,19 +32,8 @@ func TestComputeSwapStep1(t *testing.T) {
 	fee := 600
 	zeroForOne := false
 
-	// const { amountIn, amountOut, sqrtQ, feeAmount } = await swapMath.computeSwapStep(
-	//     price,
-	//     priceTarget,
-	//     liquidity,
-	//     amount,
-	//     fee
-	//   )
 	sqrtQ, amountIn, amountOut, feeAmount := ComputeSwapStep(price, priceTarget, liquidity, amount, fee)
 
-	// expect(amountIn).to.eq('9975124224178055')
-	// expect(feeAmount).to.eq('5988667735148')
-	// expect(amountOut).to.eq('9925619580021728')
-	// expect(amountIn.add(feeAmount), 'entire amount is not used').to.lt(amount)
 	amountInExpected := new(big.Int)
 	amountInExpected.SetString("9975124224178055", 10)
 	feeAmountExpected := new(big.Int)
@@ -59,10 +42,12 @@ func TestComputeSwapStep1(t *testing.T) {
 	amountOutExpected.SetString("9925619580021728", 10)
 	dif := new(big.Int).Sub(amount, new(big.Int).Add(amountIn, feeAmount))
 	if (amountInExpected.Cmp(amountIn) != 0) ||
-		(feeAmountExpected.Cmp(feeAmount) != 0) ||
 		(amountOutExpected.Cmp(amountOut) != 0) ||
-		(dif.Cmp(big.NewInt(0)) <= 0) {
-		t.Errorf("TestComputeSwapStep1 failed, got: %v, %v, %v, %v, expected: %v, %v, %v, %v", amountIn, amountOut, sqrtQ, feeAmount, amountInExpected, amountOutExpected, priceTarget, feeAmountExpected)
+		(feeAmountExpected.Cmp(feeAmount) != 0) {
+		t.Errorf("TestComputeSwapStep1 failed, got (amountIn, amountOut, feeAmount): %v, %v, %v, expected: %v, %v, %v", amountIn, amountOut, feeAmount, amountInExpected, amountOutExpected, feeAmountExpected)
+	}
+	if dif.Cmp(big.NewInt(0)) <= 0 {
+		t.Errorf("TestComputeSwapStep1 failed, entire amount should not be used, dif should be >0. dif: %v", dif)
 	}
 
 	// const priceAfterWholeInputAmount = await sqrtPriceMath.getNextSqrtPriceFromInput(
@@ -140,7 +125,7 @@ func TestComputeSwapStep2(t *testing.T) {
 }
 
 func TestComputeSwapStep3(t *testing.T) {
-	fmt.Println("Exact amount in that is fully spent in one for one")
+	fmt.Println("Exact amount in that is fully spent in one for zero")
 
 	//   const price = encodePriceSqrt(1, 1)
 	//   const priceTarget = encodePriceSqrt(1000, 100)
@@ -177,9 +162,11 @@ func TestComputeSwapStep3(t *testing.T) {
 	dif := new(big.Int).Sub(new(big.Int).Add(feeAmount, amountIn), amount)
 	if (amountInExpected.Cmp(amountIn) != 0) ||
 		(feeAmountExpected.Cmp(feeAmount) != 0) ||
-		(amountOutExpected.Cmp(amountOut) != 0) ||
-		(dif.Cmp(big.NewInt(0)) != 0) {
-		t.Errorf("TestComputeSwapStep3 failed, got: %v, %v, %v, %v, expected: %v, %v, %v, %v", amountIn, amountOut, sqrtQ, feeAmount, amountInExpected, amountOutExpected, priceTarget, feeAmountExpected)
+		(amountOutExpected.Cmp(amountOut) != 0) {
+		t.Errorf("TestComputeSwapStep3 failed, got: %v, %v, %v, expected: %v, %v, %v", amountIn, feeAmount, amountOut, amountInExpected, feeAmountExpected, amountOutExpected)
+	}
+	if dif.Cmp(big.NewInt(0)) != 0 {
+		t.Errorf("TestComputeSwapStep3 failed, the entire amount was not used. dif: %v", dif)
 	}
 
 	//   const priceAfterWholeInputAmountLessFee = await sqrtPriceMath.getNextSqrtPriceFromInput(
