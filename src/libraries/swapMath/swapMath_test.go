@@ -60,7 +60,7 @@ func TestComputeSwapStep1(t *testing.T) {
 
 	// expect(sqrtQ, 'price is capped at price target').to.eq(priceTarget)
 	// expect(sqrtQ, 'price is less than price after whole input amount').to.lt(priceAfterWholeInputAmount)
-	if (sqrtQ.Cmp(priceTarget) != 0) || (sqrtQ.Cmp(priceAfterWholeInputAmount) <= 0) {
+	if (sqrtQ.Cmp(priceTarget) != 0) || (sqrtQ.Cmp(priceAfterWholeInputAmount) >= 0) {
 		t.Errorf("TestComputeSwapStep1 failed, got: %v, %v, expected: %v, %v", sqrtQ, priceAfterWholeInputAmount, priceTarget, priceAfterWholeInputAmount)
 	}
 }
