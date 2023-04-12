@@ -4,7 +4,9 @@
     "data": {
         "token0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
         "token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "fee": 3000,
         "tickSpacing": 60,
+        "maxLiquidityPerTick": 11505743598341114571880798222544994,
         "feeGrowthGlobal0X128": 34141860006999694557895508848638,
         "feeGrowthGlobal1X128": 5041072596652235777583541165793119725137183,
         "protocolFees": {
