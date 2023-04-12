@@ -50,12 +50,6 @@ func TestComputeSwapStep1(t *testing.T) {
 		t.Errorf("TestComputeSwapStep1 failed, entire amount should not be used, dif should be >0. dif: %v", dif)
 	}
 
-	// const priceAfterWholeInputAmount = await sqrtPriceMath.getNextSqrtPriceFromInput(
-	// 	price,
-	// 	liquidity,
-	// 	amount,
-	// 	zeroForOne
-	// 	)
 	priceAfterWholeInputAmount := sqrtPriceMath.GetNextSqrtPriceFromInput(price, liquidity, amount, zeroForOne)
 
 	// expect(sqrtQ, 'price is capped at price target').to.eq(priceTarget)
