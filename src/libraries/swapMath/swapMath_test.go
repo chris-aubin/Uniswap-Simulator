@@ -174,7 +174,7 @@ func TestComputeSwapStep3(t *testing.T) {
 	feeAmountExpected.SetString("600000000000000", 10)
 	amountOutExpected := new(big.Int)
 	amountOutExpected.SetString("666399946655997866", 10)
-	dif := new(big.Int).Sub(feeAmount, amount)
+	dif := new(big.Int).Sub(new(big.Int).Add(feeAmount, amountIn), amount)
 	if (amountInExpected.Cmp(amountIn) != 0) ||
 		(feeAmountExpected.Cmp(feeAmount) != 0) ||
 		(amountOutExpected.Cmp(amountOut) != 0) ||
