@@ -25,18 +25,7 @@ import (
 // Returns amountOut, the amount to be received, of either token0 or token1,
 // based on the direction of the swap
 // Returns feeAmount, the amount of input that will be taken as a fee
-func ComputeSwapStep(
-	sqrtRatioCurrentX96,
-	sqrtRatioTargetX96,
-	liquidity,
-	amountRemaining *big.Int,
-	feePips int,
-) (
-	sqrtRatioNextX96,
-	amountIn,
-	amountOut,
-	feeAmount *big.Int,
-) {
+func ComputeSwapStep(sqrtRatioCurrentX96, sqrtRatioTargetX96, liquidity, amountRemaining *big.Int, feePips int) (sqrtRatioNextX96, amountIn, amountOut, feeAmount *big.Int) {
 	var zeroForOne bool
 	if sqrtRatioCurrentX96.Cmp(sqrtRatioTargetX96) >= 0 {
 		zeroForOne = true
