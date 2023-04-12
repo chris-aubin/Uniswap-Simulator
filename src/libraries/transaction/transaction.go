@@ -4,45 +4,6 @@ import (
 	"encoding/json"
 )
 
-type MintMethodDataInput struct {
-	Sender    string `json:"sender"`
-	Owner     string `json:"owner"`
-	TickLower int    `json:"tickLower"`
-	TickUpper int    `json:"tickUpper"`
-	Amount    string `json:"amount"`
-	Amount0   string `json:"amount0"`
-	Amount1   string `json:"amount1"`
-}
-
-type BurnMethodDataInput struct {
-	Owner     string `json:"owner"`
-	TickLower int    `json:"tickLower"`
-	TickUpper int    `json:"tickUpper"`
-	Amount    string `json:"amount"`
-	Amount0   string `json:"amount0"`
-	Amount1   string `json:"amount1"`
-}
-
-type SwapMethodDataInput struct {
-	Sender       string `json:"sender"`
-	Recipient    string `json:"recipient"`
-	Amount0      string `json:"amount0"`
-	Amount1      string `json:"amount1"`
-	SqrtPriceX96 string `json:"sqrtPriceX96"`
-	Liquidity    string `json:"liquidity"`
-	Tick         int    `json:"tick"`
-}
-
-type TransactionInput struct {
-	BlockNo    string      `json:"blockNo"`
-	Timestamp  int         `json:"timestamp"`
-	GasPrice   int         `json:"gasPrice"`
-	GasUsed    int         `json:"gasUsed"`
-	GasTotal   int         `json:"gasTotal"`
-	Method     string      `json:"method"`
-	MethodData interface{} `json:"methodData"`
-}
-
 type Transaction struct {
 	BlockNo    string
 	Timestamp  int
@@ -53,59 +14,88 @@ type Transaction struct {
 	MethodData interface{}
 }
 
+type MintMethodData struct {
+	Sender    string
+	Owner     string
+	TickLower int
+	TickUpper int
+	Amount    string
+	Amount0   string
+	Amount1   string
+}
+
+type BurnMethodData struct {
+	Owner     string
+	TickLower int
+	TickUpper int
+	Amount    string
+	Amount0   string
+	Amount1   string
+}
+
+type SwapMethodData struct {
+	Sender       string
+	Recipient    string
+	Amount0      string
+	Amount1      string
+	SqrtPriceX96 string
+	Liquidity    string
+	Tick         int
+}
+
 func (t Transaction) MarshalJSON() ([]byte, error) {
 	switch t.Method {
 	case "MINT":
-		return json.Marshal(&TransactionInput{
+		return json.Marshal(&Transaction{
 			BlockNo:   t.BlockNo,
 			Timestamp: t.Timestamp,
 			GasPrice:  t.GasPrice,
 			GasUsed:   t.GasUsed,
 			GasTotal:  t.GasTotal,
 			Method:    t.Method,
-			MethodData: MintMethodDataInput{
-				Sender:    t.MethodData.(MintMethodDataInput).Sender,
-				Owner:     t.MethodData.(MintMethodDataInput).Owner,
-				TickLower: t.MethodData.(MintMethodDataInput).TickLower,
-				TickUpper: t.MethodData.(MintMethodDataInput).TickUpper,
-				Amount:    t.MethodData.(MintMethodDataInput).Amount,
-				Amount0:   t.MethodData.(MintMethodDataInput).Amount0,
-				Amount1:   t.MethodData.(MintMethodDataInput).Amount1,
+			MethodData: MintMethodData{
+				Sender:    t.MethodData.(MintMethodData).Sender,
+				Owner:     t.MethodData.(MintMethodData).Owner,
+				TickLower: t.MethodData.(MintMethodData).TickLower,
+				TickUpper: t.MethodData.(MintMethodData).TickUpper,
+				Amount:    t.MethodData.(MintMethodData).Amount,
+				Amount0:   t.MethodData.(MintMethodData).Amount0,
+				Amount1:   t.MethodData.(MintMethodData).Amount1,
 			},
 		})
 	case "BURN":
-		return json.Marshal(&TransactionInput{
+		return json.Marshal(&Transaction{
 			BlockNo:   t.BlockNo,
 			Timestamp: t.Timestamp,
 			GasPrice:  t.GasPrice,
 			GasUsed:   t.GasUsed,
 			GasTotal:  t.GasTotal,
 			Method:    t.Method,
-			MethodData: BurnMethodDataInput{
-				Owner:     t.MethodData.(BurnMethodDataInput).Owner,
-				TickLower: t.MethodData.(BurnMethodDataInput).TickLower,
-				TickUpper: t.MethodData.(BurnMethodDataInput).TickUpper,
-				Amount:    t.MethodData.(BurnMethodDataInput).Amount,
-				Amount0:   t.MethodData.(BurnMethodDataInput).Amount0,
-				Amount1:   t.MethodData.(BurnMethodDataInput).Amount1,
+			MethodData: BurnMethodData{
+				Owner:     t.MethodData.(BurnMethodData).Owner,
+				TickLower: t.MethodData.(BurnMethodData).TickLower,
+				TickUpper: t.MethodData.(BurnMethodData).TickUpper,
+				Amount:    t.MethodData.(BurnMethodData).Amount,
+				Amount0:   t.MethodData.(BurnMethodData).Amount0,
+				Amount1:   t.MethodData.(BurnMethodData).Amount1,
 			},
 		})
 	case "SWAP":
-		return json.Marshal(&TransactionInput{
+		return json.Marshal(&Transaction{
 			BlockNo:   t.BlockNo,
 			Timestamp: t.Timestamp,
 			GasPrice:  t.GasPrice,
 			GasUsed:   t.GasUsed,
 			GasTotal:  t.GasTotal,
 			Method:    t.Method,
-			MethodData: SwapMethodDataInput{
-				Sender:       t.MethodData.(SwapMethodDataInput).Sender,
-				Recipient:    t.MethodData.(SwapMethodDataInput).Recipient,
-				Amount0:      t.MethodData.(SwapMethodDataInput).Amount0,
-				Amount1:      t.MethodData.(SwapMethodDataInput).Amount1,
-				SqrtPriceX96: t.MethodData.(SwapMethodDataInput).SqrtPriceX96,
-				Liquidity:    t.MethodData.(SwapMethodDataInput).Liquidity,
-				Tick:         t.MethodData.(SwapMethodDataInput).Tick,
+			MethodData: SwapMethodData{
+				Sender:       t.MethodData.(SwapMethodData).Sender,
+				Recipient:    t.MethodData.(SwapMethodData).Recipient,
+				Amount0:      t.MethodData.(SwapMethodData).Amount0,
+				Amount1:      t.MethodData.(SwapMethodData).Amount1,
+				SqrtPriceX96: t.MethodData.(SwapMethodData).SqrtPriceX96,
+				Liquidity:    t.MethodData.(SwapMethodData).Liquidity,
+				Tick:         t.MethodData.(SwapMethodData).Tick,
 			},
 		})
 	}
