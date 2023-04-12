@@ -10,7 +10,8 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/swapMath"
 )
 
-// Pool state.
+
+// Part of pool state.
 type Slot0 struct {
 	// The current price.
 	SqrtPriceX96 *big.Int
@@ -21,12 +22,14 @@ type Slot0 struct {
 	FeeProtocol int
 }
 
+
 // Accumulated protocol fees in token0/token1 units (fees that could be 
 // collected by Uniswap governance).
 type ProtocolFees struct {
 	Token0 *big.Int
 	Token1 *big.Int
 }
+
 
 // Pool state.
 type Pool struct {
@@ -59,6 +62,7 @@ type Pool struct {
 	Balance1 	         *big.Int
 }
 
+
 // Common checks for valid tick inputs.
 func checkTicks(tickLower int, tickUpper int) {
 	if tickLower >= tickUpper {
@@ -71,6 +75,7 @@ func checkTicks(tickLower int, tickUpper int) {
 		panic("Pool.checkTicks: tickUpper > MAXTICK")
 	}
 }
+
 
 // Finds the next initialized tick contained in the same word (or adjacent 
 // word i.e. within 256 ticks) as the tick that is either to the left (less 
@@ -102,47 +107,48 @@ func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte	bool)
 	}
 
 	if (lte) {
-		for i := compressed - 1; i >= wordLowerBound; i-- {
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// INCORRECT - WRONG KIND OF POSITION
-			position, err := p.Positions[i*tickSpacing]
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// Search for the closest initialized tick, within the word, with 
+		// tick_idx less than or equal to tick.
+		for i := compressed; i >= wordLowerBound; i-- {
+			tick_idx := i * tickSpacing
+			tick, err := p.Ticks.TickData[tick_idx]
 			if err != nil {
 				if i == wordLowerBound {
-					return wordLowerBound*tickSpacing, false
+					return tick_idx, false
 				}
 				continue
 			} else if position.Initialized {
-				return i*tickSpacing, true
+				return tick_idx, true
 			} else {
 				if i == wordLowerBound {
-					return wordLowerBound*tickSpacing, false
+					return tick_idx, false
 				}
 				continue
 			}
 		}
 	} else {
+		// Search for the closest initialized tick, within the word, with
+		// tick_idx greater than tick.
 		for i := compressed + 1; i <= wordUpperBound; i++ {
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// INCORRECT - WRONG KIND OF POSITION
-			position, err := p.Positions[i*tickSpacing]
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			tick_idx := i * tickSpacing
+			tick, err := p.Ticks.TickData[tick_idx]
 			if err != nil {
 				if i == wordUpperBound {
-					return wordUpperBound*tickSpacing, false
+					return tick_idx, false
 				}
 				continue
 			} else if position.Initialized {
-				return i*tickSpacing, true
+				return tick_idx, true
 			} else {
 				if i == wordUpperBound {
-					return wordUpperBound*tickSpacing, false
+					return tick_idx, false
 				}
 				continue
 			}
 		}
 	}
 }
+
 
 type modifyPositionParams struct {
 	// the address that owns the position
@@ -154,6 +160,7 @@ type modifyPositionParams struct {
 	liquidityDelta *big.Int
 }
 
+
 // Effect some changes to a position.
 // 
 // Arguments:
@@ -163,25 +170,19 @@ type modifyPositionParams struct {
 // Returns:
 // position -- The updated position
 // amount0  -- the amount of token0 owed to the pool (negative if the pool 
-//             should pay the recipient
+//             should pay the recipient)
 // amount1  -- the amount of token1 owed to the pool (negative if the pool 
-//             should pay the recipient
+//             should pay the recipient)
 func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.Position, amount0 *big.Int, amount1 *big.Int) {
 	checkTicks(params.tickLower, params.tickUpper)
 	slot0 = p.Slot0
 
-	position = updatePosition(
-		params.owner,
-		params.tickLower,
-		params.tickUpper,
-		params.liquidityDelta,
-		slot0.tick,
-	)
+	position = p.updatePosition(params.owner, params.tickLower, params.tickUpper, params.liquidityDelta, slot0.tick)
 
 	amount0 := new(big.Int)
 	amount1 := new(big.Int)
 
-	if (params.liquidityDelta != 0) {
+	if (params.liquidityDelta.Cmp(big.NewInt(0)) != 0) {
 		if (slot0.tick < params.tickLower) {
 			// Current tick is below the passed range; liquidity can only become in range by crossing from left to
 			// right, when we'll need _more_ token0 (it's becoming more valuable) so user must provide it
@@ -192,7 +193,7 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 			)
 		} else if (_slot0.tick < params.tickUpper) {
 			// Current tick is inside the passed range
-			liquidityBefore := liquidity
+			liquidityBefore := p.liquidity
 
 			amount0 = SqrtPriceMath.getAmount0Delta(
 				slot0.sqrtPriceX96,
@@ -205,7 +206,7 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 				params.liquidityDelta,
 			)
 
-			liquidity = LiquidityMath.addDelta(liquidityBefore, params.liquidityDelta);
+			p.liquidity = LiquidityMath.addDelta(liquidityBefore, params.liquidityDelta);
 		} else {
 			// Current tick is above the passed range; liquidity can only become in range by crossing from right to
 			// left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
@@ -219,6 +220,7 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 	return
 }
 
+
 // Gets and updates a position with the given liquidity delta
 // 
 // Arguments:
@@ -229,22 +231,24 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 // Returns:
 // position  -- the updated position
 func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liquidityDelta *big.Int,) (position *position.Position) {
-	position, err = positions[fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)]
+	position_key := fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)
+	position, err = p.Positions[position_key]
 	if err != nil {
-		panic()
+		message := fmt.Sprintf("pool.updatePosition: Position %s does not exist", position_key)
+		panic(message)
 	}
 
-	feeGrowthGlobal0X128 := feeGrowthGlobal0X128
-	feeGrowthGlobal1X128 := feeGrowthGlobal1X128
+	feeGrowthGlobal0X128 := p.FeeGrowthGlobal0X128
+	feeGrowthGlobal1X128 := p.FeeGrowthGlobal1X128
 
 	// Used to determine if we need to clear tickLower/ tickUpper after the 
 	// position is updated/
 	var flippedLower bool
 	var flippedUpper bool
-	if (liquidityDelta != 0) {
+	if (liquidityDelta.Cmp(big.NewInt(0)) != 0) {
 		time := blockTimestamp()
 
-		flippedLower = ticks.update(
+		flippedLower = p.Ticks.update(
 			tickLower,
 			tick,
 			liquidityDelta,
@@ -254,7 +258,7 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 			false,
 		)
 
-		flippedUpper = ticks.update(
+		flippedUpper = p.Ticks.update(
 			tickUpper,
 			tick,
 			liquidityDelta,
@@ -265,7 +269,7 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 		)
 	}
 
-	feeGrowthInside0X128, feeGrowthInside1X128 := ticks.getFeeGrowthInside(
+	feeGrowthInside0X128, feeGrowthInside1X128 := p.Ticks.getFeeGrowthInside(
 		tickLower,
 		tickUpper,
 		tick,
@@ -276,17 +280,18 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 	position.update(liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
 
 	// Clear any tick data that is no longer needed
-	if (liquidityDelta < 0) {
+	if (liquidityDelta.Cmp(big.NewInt(0)) <= -1) {
 		if (flippedLower) {
-			ticks.clear(tickLower);
+			p.Ticks.clear(tickLower);
 		}
 		if (flippedUpper) {
-			ticks.clear(tickUpper);
+			p.Ticks.clear(tickUpper);
 		}
 	}
 
 	return position
 }
+
 
 // Mints liquidity for the given recipient in the given tick range (either 
 // a new position or increases the liquidity of an existing position)
@@ -304,10 +309,13 @@ func (p *Pool) Mint(recipient string, tickLower, tickUpper int, amount *big.Int)
 	// Quick sanity checks
 	checkTicks(tickLower, tickUpper)
 	if amount.Cmp(big.NewInt(0)) <= 0 {
-		panic()
+		message := fmt.Sprintf("pool.Mint: Amount %s must be greater than 0", amount)
+		panic(message)
 	}
 
-	_, amount0, amount1 := modifyPosition(
+	// Get the amount of token0 and token1 owed to the pool (negative if the 
+	// pool owes the recipient)
+	_, amount0, amount1 := p.modifyPosition(
 		&ModifyPositionParams{
 			owner:          recipient,
 			tickLower:      tickLower,
@@ -317,33 +325,44 @@ func (p *Pool) Mint(recipient string, tickLower, tickUpper int, amount *big.Int)
 
 	balance0Before := new(big.Int)
 	balance1Before := new(big.Int)
-	if (amount0 > 0) {
+	if (amount0.Cmp(big.NewInt(0)) >= 1) {
 		balance0Before = p.Balance0
 	}
-	if (amount1 > 0) {
+	if (amount1.Cmp(big.NewInt(0)) >= 1) {
 		balance1Before = p.Balance1
 	}
-	// IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0, amount1, data);
+	
+	// Let minter know how much token0 and token1 they must pay to mint the position
+	// (This is what the IUniswapV3MintCallback does in the UniswapV3Pool contract)
+	// If payment was made mint position
 	// if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
 	// if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
-
-	// emit Mint(msg.sender, recipient, tickLower, tickUpper, amount, amount0, amount1);
 }
 
+// Collects tokens owed to the given position
 //
-func (p *Pool) Collect(
-	recipient string,
-	tickLower,
-	tickUpper int,
-	amount0Requested,
-	amount1Requested *big.Int,
-) (amount0, amount1 *big.Int) {
-	// we don't need to checkTicks here, because invalid positions will never have non-zero tokensOwed{0,1}
-	position, err = positions[fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)]
+// Arguments:
+// owner            -- the owner of the position
+// tickLower        -- the lower tick of the position's tick range
+// tickUpper        -- the upper tick of the position's tick range
+// amount0Requested -- the amount of token0 to collect
+// amount1Requested -- the amount of token1 to collect
+//
+// Returns:
+// amount0          -- the amount of token0 collected
+// amount1          -- the amount of token1 collected
+func (p *Pool) Collect(owner string, tickLower, tickUpper int, amount0Requested, amount1Requested *big.Int) (amount0, amount1 *big.Int) {
+	// We don't need to checkTicks here, because invalid positions will never 
+	// have non-zero tokensOwed
+	position_key := fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)
+	position, err = p.Positions[position_key]
 	if err != nil {
-		panic()
+		message := fmt.Sprintf("pool.Collect: Position %s does not exist", position_key)
+		panic(message)
 	}
 
+	// If more tokens are requests than are owed to the position then just 
+	// collect all the tokens owed.
 	amount0 = new(big.Int)
 	if amount0Requested.Cmp(position.tokensOwed0) >= 1 {
 		amount0 = position.tokensOwed0
@@ -357,24 +376,22 @@ func (p *Pool) Collect(
 		amount1 = amount1Requested
 	}
 
+	// Update the positions' tokensOwed
 	if (amount0.Cmp(big.NewInt(0)) >= 1) {
 		position.tokensOwed0 = new(big.Int).Sub(position.tokensOwed0, amount0)
-		// TransferHelper.safeTransfer(token0, recipient, amount0);
 	}
-
 	if (amount1.Cmp(big.NewInt(0)) >= 1) {
 		position.tokensOwed1 = new(big.Int).Sub(position.tokensOwed1, amount1)
-		// TransferHelper.safeTransfer(token1, recipient, amount1);
 	}
 }
 
 // 
-func (p *Pool) Burn(tickLower, tickUpper int, amount *big.Int) (amount0, amount1 *big.Int) {
-	position, amount0, amount1 := _modifyPosition(
+func (p *Pool) Burn(owner, string, tickLower, tickUpper int, amount *big.Int) (amount0, amount1 *big.Int) {
+	position, amount0, amount1 := p.ModifyPosition(
 		&ModifyPositionParams{
-			owner: msg.sender,
-			tickLower: tickLower,
-			tickUpper: tickUpper,
+			owner:          owner,
+			tickLower:      tickLower,
+			tickUpper:      tickUpper,
 			liquidityDelta: new(big.Int).Neg(amount),
 		}
 	)
@@ -434,39 +451,33 @@ struct StepComputations {
 
 
 /// @inheritdoc IUniswapV3PoolActions
-func (p *Pool) Swap(
-	recipient string,
-	zeroForOne bool,
-	amountSpecified,
-	sqrtPriceLimitX96 *big.Int,
-	// bytes calldata data
-) (amount0, amount1 *big.Int) {
-	// require(amountSpecified != 0, 'AS');
+func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, sqrtPriceLimitX96 *big.Int) (amount0, amount1 *big.Int) {
 	if (amountSpecified.Cmp(big.NewInt(0)) == 0) {
-		panic()
+		message := fmt.Sprintf("pool.Swap: amountSpecified %v must not be 0", amountSpecified)
+		panic(message)
 	}
 
-	slot0Start = p.slot0;
+	slot0Start = p.Slot0;
 
 	var cacheFeeProtocol int
 	var stateFeeGrowthGlobalX128 *big.Int
 	if (zeroForOne) {
-		if !((sqrtPriceLimitX96.Cmp(slot0Start.sqrtPriceX96) >= -1) && (sqrtPriceLimitX96.Cmp(TickMath.MIN_SQRT_RATIO) >= 1)) {
-			panic()
+		if !((sqrtPriceLimitX96.Cmp(slot0Start.sqrtPriceX96) <= -1) && (sqrtPriceLimitX96.Cmp(constants.MinTickBig) >= 1)) {
+			panic("pool.Swap: Invalid price limit")
 		}
 		cacheFeeProtocol := slot0Start.feeProtocol % 16
 		stateFeeGrowthGlobalX128 := slot0Start.feeGrowthGlobal0X128
 	} else {		
-		if !((sqrtPriceLimitX96.Cmp(slot0Start.sqrtPriceX96) >= 1) && (sqrtPriceLimitX96.Cmp(TickMath.MIN_SQRT_RATIO) <= 1)) {
-			panic()
+		if !((sqrtPriceLimitX96.Cmp(slot0Start.sqrtPriceX96) >= 1) && (sqrtPriceLimitX96.Cmp(constants.MaxTickBig) <= -1)) {
+			panic("pool.Swap: Invalid price limit")
 		}
 		cacheFeeProtocol := slot0Start.feeProtocol >> 4
 		stateFeeGrowthGlobalX128 := slot0Start.feeGrowthGlobal1X128
 	}
 
-	cache := SwapCache{
-		liquidityStart: liquidity,
-		feeProtocol: cacheFeeProtocol,
+	cache := &SwapCache{
+		LiquidityStart: liquidity,
+		FeeProtocol:    cacheFeeProtocol,
 	}
  
 	if (amountSpecified.Cmp(big.NewInt(0)) >= 1) {
@@ -475,173 +486,165 @@ func (p *Pool) Swap(
 		exactInput := false
 	}
 
-	state := SwapState{
-		amountSpecifiedRemaining: amountSpecified,
-		amountCalculated: 0,
-		sqrtPriceX96: slot0Start.sqrtPriceX96,
-		tick: slot0Start.tick,
-		feeGrowthGlobalX128: stateFeeGrowthGlobalX128,
-		protocolFee: 0,
-		liquidity: cache.liquidityStart
+	state := &SwapState{
+		AmountSpecifiedRemaining: amountSpecified,
+		AmountCalculated:         0,
+		SqrtPriceX96:             slot0Start.sqrtPriceX96,
+		Tick:                     slot0Start.tick,
+		FeeGrowthGlobalX128:      stateFeeGrowthGlobalX128,
+		ProtocolFee:              0,
+		liquidity:                cache.LiquidityStart,
 	};
 
 	// Continue swapping as long as we haven't used the entire input/output and 
 	// haven't reached the price limit
-	for (state.amountSpecifiedRemaining.Cmp(big.NewInt(0)) >= 1 && state.sqrtPriceX96.Cmp(sqrtPriceLimitX96) >= 1) {
-		// StepComputations memory step;
+	for (state.amountSpecifiedRemaining.Cmp(big.NewInt(0)) >= 1 && state.sqrtPriceX96.Cmp(sqrtPriceLimitX96) <= -1) {
 		step := new(StepComputations)
-
 		step[SqrtPriceStartX96] = state.sqrtPriceX96;
-
-		step.tickNext, step.initialized = nextInitializedTickWithinOneWord(
+		step.TickNext, step.Initialized = p.nextInitializedTickWithinOneWord(
 			state.tick,
 			tickSpacing,
 			zeroForOne
 		)
 
-		// Ensure that we do not overshoot the min/max tick, as the tick bitmap is not aware of these bounds
-		if (step.tickNext < constants.MinTick) {
-			step.tickNext = constants.MinTick
-		} else if (step.tickNext > constants.MaxTick) {
-			step.tickNext = constants.MaxTick
+		// Ensure that we do not overshoot the min/max tick (likely unnecessary
+		// in this simulator)
+		if (step.TickNext < constants.MinTick) {
+			step.TickNext = constants.MinTick
+		} else if (step.TickNext > constants.MaxTick) {
+			step.TickNext = constants.MaxTick
 		}
 
 		// Get the price for the next tick
-		step.sqrtPriceNextX96 = tickMath.getSqrtRatioAtTick(step.tickNext);
+		step.SqrtPriceNextX96 = tickMath.GetSqrtRatioAtTick(step.tickNext);
 
-		// Compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
+		// Compute values to swap to the target tick, price limit, or point 
+		// where input/output amount is exhausted
 		var sqrtRatioTargetX96 *big.Int
 		if (zeroForOne) {
 			// step.sqrtPriceNextX96 < sqrtPriceLimitX96
-			if (step.sqrtPriceNextX96.Cmp(sqrtPriceLimitX96) <= -1) {
+			if step.SqrtPriceNextX96.Cmp(sqrtPriceLimitX96) <= -1 {
 				sqrtRatioTargetX96 = sqrtPriceLimitX96
 			} else {
-				sqrtRatioTargetX96 = step.sqrtPriceNextX96
+				sqrtRatioTargetX96 = step.SqrtPriceNextX96
 			}
 		} else {
-			if (step.sqrtPriceNextX96.Cmp(sqrtPriceLimitX96) >= 1) {
+			if (step.SqrtPriceNextX96.Cmp(sqrtPriceLimitX96) >= 1) {
 				sqrtRatioTargetX96 = sqrtPriceLimitX96
 			} else {
-				sqrtRatioTargetX96 = step.sqrtPriceNextX96
+				sqrtRatioTargetX96 = step.SqrtPriceNextX96
 			}
 		}
 
 		if (exactInput) {
-			state.amountSpecifiedRemaining = new(big.Int).Sub(state.amountSpecifiedRemaining, new(big.Int).Add(step.amountIn step.feeAmount))
-			state.amountCalculated = state.amountCalculated.Sub(step.amountOut)
+			state.AmountSpecifiedRemaining = new(big.Int).Sub(state.AmountSpecifiedRemaining, new(big.Int).Add(step.AmountIn step.feeAmount))
+			state.AmountCalculated = state.AmountCalculated.Sub(step.AmountOut)
 		} else {
-			state.amountSpecifiedRemaining = new(big.Int).Add(state.amountSpecifiedRemaining, step.amountOut)
-			state.amountCalculated = new(big.Int)(state.amountCalculated, new(big.Int).Add(step.amountIn, step.feeAmount))
+			state.AmountSpecifiedRemaining = new(big.Int).Add(state.AmountSpecifiedRemaining, step.AmountOut)
+			state.AmountCalculated = new(big.Int)(state.AmountCalculated, new(big.Int).Add(step.AmountIn, step.FeeAmount))
 		}
 
 		// If the protocol fee is on, calculate how much is owed, decrement 
 		// feeAmount, and increment protocolFee
-		if (cache.feeProtocol > 0) {
-			delta := new(big.Int).Div(step.feeAmount, cache.feeProtocol)
-			step.feeAmount = new(big.Int).Sub(step.feeAmount, delta)
-			state.protocolFee = new(big.Int).Add(state.protocolFee, delta);
+		if (cache.FeeProtocol > 0) {
+			delta := new(big.Int).Div(step.FeeAmount, cache.FeeProtocol)
+			step.FeeAmount = new(big.Int).Sub(step.FeeAmount, delta)
+			state.ProtocolFee = new(big.Int).Add(state.ProtocolFee, delta);
 		}
 
 		// Update global fee tracker
 		// if (state.liquidity > 0)
-		if (state.liquidity.Cmp(big.NewInt(0)) >= 1) {
-			state.feeGrowthGlobalX128 = new(big.Int).Add(state.feeGrowthGlobalX128, FullMath.mulDiv(step.feeAmount, FixedPoint128.Q128, state.liquidity))
+		if (state.Liquidity.Cmp(big.NewInt(0)) >= 1) {
+			state.FeeGrowthGlobalX128 = new(big.Int).Add(state.FeeGrowthGlobalX128, FullMath.mulDiv(step.FeeAmount, FixedPoint128.Q128, state.Liquidity))
 		}
 
 		///////////////////////////////////////////////////////////////////////
 		// Shift tick if we reached the next price
-		if (state.sqrtPriceX96.Cmp(step.sqrtPriceNextX96) == 0) {
+		if (state.SqrtPriceX96.Cmp(step.SqrtPriceNextX96) == 0) {
 			// If the tick is initialized, run the tick transition
-			if (step.initialized) {
+			if (step.Initialized) {
 				// Check for the placeholder value, which we replace with the 
 				// actual value the first time the swap crosses an initialized 
 				/// tick
 				
-				tempFeeGrowthGlobal0X128 := state.feeGrowthGlobalX128
-				tempFeeGrowthGlobal1X128 := p.feeGrowthGlobalX128
+				tempFeeGrowthGlobal0X128 := state.FeeGrowthGlobalX128
+				tempFeeGrowthGlobal1X128 := p.FeeGrowthGlobalX128
 				if (zeroForOne) {
-					tempFeeGrowthGlobal0X128 = p.feeGrowthGlobalX128
-					tempFeeGrowthGlobal1X128 = state.feeGrowthGlobalX128
+					tempFeeGrowthGlobal0X128 = p.FeeGrowthGlobalX128
+					tempFeeGrowthGlobal1X128 = state.FeeGrowthGlobalX128
 					// if we're moving leftward, we interpret liquidityNet as 
 					// the opposite sign
 					liquidityNet = new(big.Int).Neg(liquidityNet)
 				}
 
 				liquidityNet := tick.Cross(
-					step.tickNext,
+					step.TickNext,
 					tempFeeGrowthGlobal0X128,
 					tempFeeGrowthGlobal1X128,
 				)
 
-				state.liquidity = liquidityMath.AddDelta(state.liquidity, liquidityNet);
+				state.Liquidity = liquidityMath.AddDelta(state.Liquidity, liquidityNet);
 			}
 
 			if (zeroForOne) {
-				state.tick = step.tickNext - 1
+				state.Tick = step.TickNext - 1
 			} else {
-				state.tick = step.tickNext
+				state.Tick = step.TickNext
 			}
-		} else if (state.sqrtPriceX96.Cmp(step.sqrtPriceStartX96) != 0) {
+		} else if (state.SqrtPriceX96.Cmp(step.SqrtPriceStartX96) != 0) {
 			// Recompute unless we're on a lower tick boundary (i.e. already 
 			// transitioned ticks), and haven't moved
-			state.tick = tickMath.GetTickAtSqrtRatio(state.sqrtPriceX96);
+			state.Tick = tickMath.GetTickAtSqrtRatio(state.SqrtPriceX96);
 		}
 	}
 
-	// update tick and write an oracle entry if the tick change
-	if (state.tick != slot0Start.tick) {
-		
-		slot0.sqrtPriceX96 = state.sqrtPriceX96
-		slot0.tick = state.tick
+	// Update tick if the tick change
+	if (state.Tick != slot0Start.Tick) {
+		slot0.SqrtPriceX96 = state.SqrtPriceX96
+		slot0.Tick = state.Tick
 	} else {
 		// Otherwise just update the price
-		slot0.sqrtPriceX96 = state.sqrtPriceX96;
+		slot0.SqrtPriceX96 = state.SqrtPriceX96;
 	}
 
 	// Update liquidity if it changed
-	if (cache.liquidityStart.Cmp(state.liquidity) != 0) {
-		liquidity = state.liquidity;
+	if (cache.LiquidityStart.Cmp(state.Liquidity) != 0) {
+		liquidity = state.Liquidity;
 	}
 
 	// Update fee growth global and, if necessary, protocol fees
 	if (zeroForOne) {
-		feeGrowthGlobal0X128 = state.feeGrowthGlobalX128
-		if (state.protocolFee > 0) {
-			protocolFees.token0 = new(big.Int).Add(protocolFees.token0, state.protocolFee)
+		feeGrowthGlobal0X128 = state.FeeGrowthGlobalX128
+		if (state.ProtocolFee > 0) {
+			p.ProtocolFees.Token0 = new(big.Int).Add(p.ProtocolFees.Token0, state.ProtocolFee)
 		}
 	} else {
-		feeGrowthGlobal1X128 = state.feeGrowthGlobalX128
-		if (state.protocolFee > 0) {
-			protocolFees.token1 = new(big.Int).Add(protocolFees.token1, state.protocolFee)
+		feeGrowthGlobal1X128 = state.FeeGrowthGlobalX128
+		if (state.ProtocolFee > 0) {
+			p.ProtocolFees.Token1 = new(big.Int).Add(p.ProtocolFees.Token1, state.ProtocolFee)
 		}
 	}
 
 	if (zeroForOne == exactInput) {
-		amount0 = new(big.Int).Sub(amountSpecified, state.amountSpecifiedRemaining)
-		amount1 = state.amountCalculated
+		amount0 = new(big.Int).Sub(amountSpecified, state.AmountSpecifiedRemaining)
+		amount1 = state.AmountCalculated
 	} else {
-		amount0 = state.amountCalculated
-		amount1 = new(big.Int).Sub(amountSpecified, state.amountSpecifiedRemaining)
+		amount0 = state.AmountCalculated
+		amount1 = new(big.Int).Sub(amountSpecified, state.AmountSpecifiedRemaining)
 	}
 
-	// do the transfers and collect payment
-	if (zeroForOne) {
-		// if (amount1 < 0) TransferHelper.safeTransfer(token1, recipient, uint256(-amount1));
+	// // do the transfers and collect payment
+	// if (zeroForOne) {
+	// 	// if (amount1 < 0) TransferHelper.safeTransfer(token1, recipient, uint256(-amount1));
 
-		balance0Before := p.balance0
-		// IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(amount0, amount1, data);
-		// require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
-	} else {
-		// if (amount0 < 0) TransferHelper.safeTransfer(token0, recipient, uint256(-amount0));
+	// 	balance0Before := p.Balance0
+	// 	// IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(amount0, amount1, data);
+	// 	// require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
+	// } else {
+	// 	// if (amount0 < 0) TransferHelper.safeTransfer(token0, recipient, uint256(-amount0));
 
-		balance1Before := p.balance1
-		// IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(amount0, amount1, data);
-		// require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
-	}
+	// 	balance1Before := p.Balance1
+	// 	// IUniswapV3SwapCallback(msg.sender).uniswapV3SwapCallback(amount0, amount1, data);
+	// 	// require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
+	// }
 }
-
-
-// func Make (tick int, liquidity []*position.Position) *Pool {
-
-// }
-
