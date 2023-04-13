@@ -301,7 +301,6 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 	var flippedLower bool
 	var flippedUpper bool
 	if liquidityDelta.Cmp(big.NewInt(0)) != 0 {
-
 		flippedLower = p.Ticks.Update(
 			tickLower,
 			tick,
@@ -592,7 +591,8 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 			}
 		}
 
-		// compute values to swap to the target tick, price limit, or point where input/output amount is exhausted
+		// Compute values to swap to the target tick, price limit, or point
+		// where input/output amount is exhausted
 		state.SqrtPriceX96, step.AmountIn, step.AmountOut, step.FeeAmount = swapMath.ComputeSwapStep(
 			state.SqrtPriceX96,
 			sqrtRatioTargetX96,
@@ -665,13 +665,11 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 		}
 	}
 
+	// Update the price
+	p.Slot0.SqrtPriceX96 = state.SqrtPriceX96
 	// Update tick if the tick change
 	if state.Tick != slot0Start.Tick {
-		p.Slot0.SqrtPriceX96 = state.SqrtPriceX96
 		p.Slot0.Tick = state.Tick
-	} else {
-		// Otherwise just update the price
-		p.Slot0.SqrtPriceX96 = state.SqrtPriceX96
 	}
 
 	// Update liquidity if it changed
