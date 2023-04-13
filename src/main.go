@@ -25,14 +25,16 @@ func getTransactions(transactionsRaw []byte) []transaction.Transaction {
 
 func getPoolState(poolRaw []byte) *pool.Pool {
 	type getPoolStateInput struct {
-		Data pool.Pool
+		Data pool.PoolTemp
 	}
 	var poolInput getPoolStateInput
-	var pool pool.Pool
+	var poolTemp pool.PoolTemp
+	var p *pool.Pool
 
 	json.Unmarshal(poolRaw, &poolInput)
-	pool = poolInput.Data
-	return &pool
+	poolTemp = poolInput.Data
+	p = pool.PoolTempToPool(&poolTemp)
+	return p
 }
 
 func getGasAvs(gasAvsRaw []byte) *map[string]float64 {
@@ -93,12 +95,9 @@ func main() {
 	poolState := getPoolState(poolStateRaw)
 	// gasAvs := getGasAvs(gasAvsRaw)
 
-	// fmt.Println("Transactions:")
-	// fmt.Printf("%+v", transactions)
-	// fmt.Println("Pool state:")
-	// fmt.Printf("%+v", poolState)
 	s := simulation.Make(poolState, transactions)
 	s.Simulate()
 	fmt.Println("Pool state after simulation:")
-	fmt.Printf("%+v", s.Pool)
+	poolJSON, _ := json.MarshalIndent(s.Pool, "", "  ")
+	fmt.Println(string(poolJSON))
 }

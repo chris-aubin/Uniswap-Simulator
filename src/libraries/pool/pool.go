@@ -67,6 +67,63 @@ type Pool struct {
 	Balance1 *big.Int
 }
 
+// Pool state in which the tick map is a map of strings to Tick structs. This
+// is necessary because the pool state is provided in JSON format, in which
+// all keys are strings.
+type PoolTemp struct {
+	Token0              string
+	Token1              string
+	Fee                 int
+	TickSpacing         int
+	MaxLiquidityPerTick *big.Int
+	Slot0               *Slot0
+	// FeeGrowthGlobal0X128 and FeeGrowthGlobal1X128 represent the total amount
+	// of fees that have been earned per unit of virtual liquidity (L), over the
+	// entire history of the contract. This is the same as the total amount of
+	// fees that would have been earned by 1 unit of unbounded liquidity that
+	// was deposited when the contract was first initialized.
+	FeeGrowthGlobal0X128 *big.Int
+	FeeGrowthGlobal1X128 *big.Int
+	ProtocolFees         *ProtocolFees
+	Liquidity            *big.Int
+	// Tick-indexed state, as per section 6.3 in Uniswap V3 Whitepaper. This is
+	// a mapping from tick index to a Tick struct that contains information
+	// about that tick (see the tick package for more).
+	Ticks *map[string]tick.Tick
+	// Position-indexed state, as per section 6.4 in Uniswap V3 Whitepaper. In
+	// the deployed contract, this is a mapping from the hash of a position's
+	// owner's address, tickLower, and tickUpper (in byte form) to a Position.
+	// In this simulator it is implemented it as a mapping from a string, which
+	// is the concatenation of the owner's address, tickUpper and tickLower
+	// concatenate, to a Position (see the position package for more).
+	Positions map[string]*position.Position
+	// Balance of token0 and token1 held by the pool. Not part of state in the
+	// deployed contract (the deployed contract checks the balance of the token
+	// owned by the pool address).
+	Balance0 *big.Int
+	Balance1 *big.Int
+}
+
+func PoolTempToPool(poolTemp *PoolTemp) *Pool {
+	pool := &Pool{
+		Token0:               poolTemp.Token0,
+		Token1:               poolTemp.Token1,
+		Fee:                  poolTemp.Fee,
+		TickSpacing:          poolTemp.TickSpacing,
+		MaxLiquidityPerTick:  poolTemp.MaxLiquidityPerTick,
+		Slot0:                poolTemp.Slot0,
+		FeeGrowthGlobal0X128: poolTemp.FeeGrowthGlobal0X128,
+		FeeGrowthGlobal1X128: poolTemp.FeeGrowthGlobal1X128,
+		ProtocolFees:         poolTemp.ProtocolFees,
+		Liquidity:            poolTemp.Liquidity,
+		Ticks:                tick.TicksTempToTicks(poolTemp.Ticks),
+		Positions:            poolTemp.Positions,
+		Balance0:             poolTemp.Balance0,
+		Balance1:             poolTemp.Balance1,
+	}
+	return pool
+}
+
 // Common checks for valid tick inputs.
 func checkTicks(tickLower int, tickUpper int) {
 	if tickLower >= tickUpper {

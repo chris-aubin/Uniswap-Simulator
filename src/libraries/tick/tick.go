@@ -2,6 +2,7 @@ package tick
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/liquidityMath"
@@ -33,6 +34,26 @@ type Tick struct {
 type Ticks struct {
 	// Maps tick index to tick data
 	TickData map[int]*Tick
+}
+
+// Takes in a map from string to Tick and returns a Ticks struct (i.e. a map
+// from int to Tick)
+func TicksTempToTicks(ticks *map[string]Tick) *Ticks {
+	tickData := make(map[int]*Tick)
+	for k, v := range *ticks {
+		tickIdx, _ := strconv.ParseInt(k, 10, 64)
+		tick := Tick{
+			LiquidityGross:        v.LiquidityGross,
+			LiquidityNet:          v.LiquidityNet,
+			FeeGrowthOutside0X128: v.FeeGrowthOutside0X128,
+			FeeGrowthOutside1X128: v.FeeGrowthOutside1X128,
+			Initialized:           v.Initialized,
+		}
+		tickData[int(tickIdx)] = &tick
+	}
+	return &Ticks{
+		TickData: tickData,
+	}
 }
 
 // Derives max liquidity per tick from given tick spacing
