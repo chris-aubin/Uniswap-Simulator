@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"encoding/json"
+	"math/big"
 )
 
 type Transaction struct {
@@ -19,27 +20,27 @@ type MintMethodData struct {
 	Owner     string
 	TickLower int
 	TickUpper int
-	Amount    string
-	Amount0   string
-	Amount1   string
+	Amount    *big.Int
+	Amount0   *big.Int
+	Amount1   *big.Int
 }
 
 type BurnMethodData struct {
 	Owner     string
 	TickLower int
 	TickUpper int
-	Amount    string
-	Amount0   string
-	Amount1   string
+	Amount    *big.Int
+	Amount0   *big.Int
+	Amount1   *big.Int
 }
 
 type SwapMethodData struct {
 	Sender       string
 	Recipient    string
-	Amount0      string
-	Amount1      string
-	SqrtPriceX96 string
-	Liquidity    string
+	Amount0      *big.Int
+	Amount1      *big.Int
+	SqrtPriceX96 *big.Int
+	Liquidity    *big.Int
 	Tick         int
 }
 
