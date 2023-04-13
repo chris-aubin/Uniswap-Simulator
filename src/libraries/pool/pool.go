@@ -171,13 +171,8 @@ func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte bool)
 		// tick_idx less than or equal to tick.
 		for i := compressed; i >= wordLowerBound; i-- {
 			tick_idx := i * tickSpacing
-			tick, err := p.Ticks.TickData[tick_idx]
-			if err {
-				if i == wordLowerBound {
-					return tick_idx, false
-				}
-				continue
-			} else if tick.Initialized {
+			tick := p.Ticks.Get(tick_idx)
+			if tick.Initialized {
 				return tick_idx, true
 			} else {
 				if i == wordLowerBound {
@@ -191,13 +186,8 @@ func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte bool)
 		// tick_idx greater than tick.
 		for i := compressed + 1; i <= wordUpperBound; i++ {
 			tick_idx := i * tickSpacing
-			tick, err := p.Ticks.TickData[tick_idx]
-			if err {
-				if i == wordUpperBound {
-					return tick_idx, false
-				}
-				continue
-			} else if tick.Initialized {
+			tick := p.Ticks.Get(tick_idx)
+			if tick.Initialized {
 				return tick_idx, true
 			} else {
 				if i == wordUpperBound {
