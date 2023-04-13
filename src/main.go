@@ -12,15 +12,14 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/transaction"
 )
 
-func getTransactions(transactionsRaw []byte) []*transaction.Transaction {
+func getTransactions(transactionsRaw []byte) []transaction.Transaction {
 	type getTransactionsInput struct {
-		Data []*transaction.Transaction
+		Data []transaction.Transaction
 	}
 	var transactionsInput getTransactionsInput
-	var transactions []*transaction.Transaction
 
 	json.Unmarshal(transactionsRaw, &transactionsInput)
-	transactions = transactionsInput.Data
+	transactions := transactionsInput.Data
 	return transactions
 }
 
@@ -94,6 +93,10 @@ func main() {
 	poolState := getPoolState(poolStateRaw)
 	// gasAvs := getGasAvs(gasAvsRaw)
 
+	// fmt.Println("Transactions:")
+	// fmt.Printf("%+v", transactions)
+	// fmt.Println("Pool state:")
+	// fmt.Printf("%+v", poolState)
 	s := simulation.Make(poolState, transactions)
 	s.Simulate()
 	fmt.Println("Pool state after simulation:")

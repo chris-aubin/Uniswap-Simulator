@@ -13,13 +13,13 @@ import (
 type Simulation struct {
 	// Strategy                *strategy.Strategy
 	Pool         *pool.Pool
-	Transactions []*transaction.Transaction
+	Transactions []transaction.Transaction
 	// StartBlock			    int
 	// EndBlock					int
 	// UpdateInterval		    int
 }
 
-func Make(pool *pool.Pool, transactions []*transaction.Transaction) *Simulation {
+func Make(pool *pool.Pool, transactions []transaction.Transaction) *Simulation {
 	return &Simulation{
 		// Strategy:                strategy,
 		Pool:         pool,
@@ -49,24 +49,18 @@ func (s *Simulation) Simulate() {
 		// }
 
 		switch t.Method {
-		case "MINT":
-			methodData := t.MethodData
-			mintMethodData := methodData.(transaction.MintMethodData)
-			pool.Mint(mintMethodData.Owner, mintMethodData.TickLower, mintMethodData.TickUpper, mintMethodData.Amount)
-		case "BURN":
-			methodData := t.MethodData
-			burnMethodData := methodData.(transaction.BurnMethodData)
-			pool.Burn(burnMethodData.Owner, burnMethodData.TickLower, burnMethodData.TickUpper, burnMethodData.Amount)
-		case "SWAP":
+		case "Mint":
+			pool.Mint(t.Owner, t.TickLower, t.TickUpper, t.Amount)
+		case "Burn":
+			pool.Burn(t.Owner, t.TickLower, t.TickUpper, t.Amount)
+		case "Swap":
 			zeroForOne := true
-			methodData := t.MethodData
-			swapMethodData := methodData.(transaction.SwapMethodData)
-			amount := swapMethodData.Amount1
-			if swapMethodData.Amount0.Cmp(big.NewInt(0)) >= 1 {
+			amount := t.Amount1
+			if t.Amount0.Cmp(big.NewInt(0)) >= 1 {
 				zeroForOne = false
-				amount = swapMethodData.Amount0
+				amount = t.Amount0
 			}
-			pool.Swap(swapMethodData.Sender, swapMethodData.Recipient, zeroForOne, amount, constants.MaxUint160)
+			pool.Swap(t.Sender, t.Recipient, zeroForOne, amount, constants.MaxUint160)
 		}
 	}
 }
