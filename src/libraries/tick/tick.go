@@ -87,8 +87,8 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 		feeGrowthBelow0X128 = lower.FeeGrowthOutside0X128
 		feeGrowthBelow1X128 = lower.FeeGrowthOutside1X128
 	} else {
-		feeGrowthBelow0X128.Sub(feeGrowthGlobal0X128, lower.FeeGrowthOutside0X128)
-		feeGrowthBelow1X128.Sub(feeGrowthGlobal1X128, lower.FeeGrowthOutside1X128)
+		feeGrowthBelow0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, lower.FeeGrowthOutside0X128)
+		feeGrowthBelow1X128 = new(big.Int).Sub(feeGrowthGlobal1X128, lower.FeeGrowthOutside1X128)
 	}
 
 	// Calculate fee growth above
@@ -98,8 +98,8 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 		feeGrowthAbove0X128 = upper.FeeGrowthOutside0X128
 		feeGrowthAbove1X128 = upper.FeeGrowthOutside1X128
 	} else {
-		feeGrowthAbove0X128.Sub(feeGrowthGlobal0X128, upper.FeeGrowthOutside0X128)
-		feeGrowthAbove1X128.Sub(feeGrowthGlobal1X128, upper.FeeGrowthOutside1X128)
+		feeGrowthAbove0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, upper.FeeGrowthOutside0X128)
+		feeGrowthAbove1X128 = new(big.Int).Sub(feeGrowthGlobal1X128, upper.FeeGrowthOutside1X128)
 	}
 
 	// Calculate fee growth inside
@@ -127,14 +127,15 @@ func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 	liquidityGrossBefore := info.LiquidityGross
 	liquidityGrossAfter := liquidityMath.AddDelta(liquidityGrossBefore, liquidityDelta)
 
-	if liquidityGrossAfter.Cmp(maxLiquidity) == 1 {
-		panic("TICK: LO")
+	if liquidityGrossAfter.Cmp(maxLiquidity) >= 1 {
+		panic("tick.Update: Tick liquidity cannot exceed max liquidity per tick")
 	}
 
-	flipped := (liquidityGrossAfter.Cmp(big.NewInt(0)) == 1) != (liquidityGrossBefore.Cmp(big.NewInt(0)) == 1)
+	flipped := (liquidityGrossAfter.Cmp(big.NewInt(0)) == 0) != (liquidityGrossBefore.Cmp(big.NewInt(0)) == 0)
 
-	if liquidityGrossBefore.Cmp(big.NewInt(0)) == 1 {
-		// By convention, Uniswap assumes that all growth before a tick was initialized happened _below_ the tick
+	if liquidityGrossBefore.Cmp(big.NewInt(0)) == 0 {
+		// By convention, Uniswap assumes that all growth before a tick was
+		// initialized happened below the tick
 		if tick <= tickCurrent {
 			info.FeeGrowthOutside0X128 = feeGrowthGlobal0X128
 			info.FeeGrowthOutside1X128 = feeGrowthGlobal1X128
@@ -144,10 +145,12 @@ func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 
 	info.LiquidityGross = liquidityGrossAfter
 
+	// When the lower (upper) tick is crossed left to right (right to left),
+	// liquidity must be added (removed)
 	if upper {
-		info.LiquidityNet.Sub(info.LiquidityNet, liquidityDelta)
+		info.LiquidityNet = new(big.Int).Sub(info.LiquidityNet, liquidityDelta)
 	} else {
-		info.LiquidityNet.Add(info.LiquidityNet, liquidityDelta)
+		info.LiquidityNet = new(big.Int).Add(info.LiquidityNet, liquidityDelta)
 	}
 
 	return flipped
@@ -166,8 +169,8 @@ func (t *Ticks) Clear(tick int) {
 // Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
 func (t *Ticks) Cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) *big.Int {
 	info := t.TickData[tick]
-	info.FeeGrowthOutside0X128.Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
-	info.FeeGrowthOutside1X128.Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)
+	info.FeeGrowthOutside0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
+	info.FeeGrowthOutside1X128 = new(big.Int).Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)
 	liquidityNet := info.LiquidityNet
 	return liquidityNet
 }
