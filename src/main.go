@@ -51,7 +51,7 @@ func getGasAvs(gasAvsRaw []byte) *map[string]float64 {
 
 func main() {
 	relPathToTransactions := flag.String("transactions", "../data/transactions.txt", "Path to file containing transactions for simulation")
-	relPathToPoolState := flag.String("pool", "../data/poolState.txt", "Path to file containing pool state for simulation")
+	relPathToPoolState := flag.String("pool", "../data/poolStateBefore.txt", "Path to file containing pool state for simulation")
 	// relPathToGasAvs := flag.String("gasAvs", "../data/gasAvs.txt", "Path to file containing gas averages for simulation")
 	flag.Parse()
 
@@ -97,7 +97,6 @@ func main() {
 
 	s := simulation.Make(poolState, transactions)
 	s.Simulate()
-	fmt.Println("Pool state after simulation:")
-	poolJSON, _ := json.MarshalIndent(s.Pool, "", "  ")
+	poolJSON, _ := json.MarshalIndent(s.Pool, "", "    ")
 	fmt.Println(string(poolJSON))
 }
