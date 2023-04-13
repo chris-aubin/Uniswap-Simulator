@@ -54,11 +54,18 @@ func (s *Simulation) Simulate() {
 		case "Burn":
 			pool.Burn(t.Owner, t.TickLower, t.TickUpper, t.Amount)
 		case "Swap":
+			// Is the swap token0 for token1 or token1 for token0? The value
+			// that is greater than 0 is the token that the user provided.
+			// There's no way to tell whether the swap was for an exact input
+			// or an exact output, so we'll just assume that all swaps are for
+			// an exact input (by providing the positive amount). We also set
+			// the price limit to the max value of a uint160 to ensure that all
+			// swaps are executed in their entirety.
 			zeroForOne := true
-			amount := t.Amount1
-			if t.Amount0.Cmp(big.NewInt(0)) >= 1 {
+			amount := t.Amount0
+			if t.Amount1.Cmp(big.NewInt(0)) >= 1 {
 				zeroForOne = false
-				amount = t.Amount0
+				amount = t.Amount1
 			}
 			pool.Swap(t.Sender, t.Recipient, zeroForOne, amount, constants.MaxUint160)
 		}
