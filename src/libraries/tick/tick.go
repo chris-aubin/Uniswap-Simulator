@@ -123,8 +123,8 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 	feeGrowthInside0X128 := new(big.Int)
 	feeGrowthInside1X128 := new(big.Int)
 
-	feeGrowthInside0X128.Sub(feeGrowthGlobal0X128, new(big.Int).Sub(feeGrowthBelow0X128, feeGrowthAbove0X128))
-	feeGrowthInside1X128.Sub(feeGrowthGlobal1X128, new(big.Int).Sub(feeGrowthBelow1X128, feeGrowthAbove1X128))
+	feeGrowthInside0X128.Sub(feeGrowthGlobal0X128, new(big.Int).Add(feeGrowthBelow0X128, feeGrowthAbove0X128))
+	feeGrowthInside1X128.Sub(feeGrowthGlobal1X128, new(big.Int).Add(feeGrowthBelow1X128, feeGrowthAbove1X128))
 
 	return feeGrowthInside0X128, feeGrowthInside1X128
 }
