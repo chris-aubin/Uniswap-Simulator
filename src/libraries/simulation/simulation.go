@@ -12,21 +12,21 @@ import (
 
 type Simulation struct {
 	// Strategy                *strategy.Strategy
-	Pool                    *pool.Pool
-	Transactions            []*transaction.Transaction
-	StartBlock			    int
-	EndBlock				int
-	UpdateInterval		    int	
+	Pool         *pool.Pool
+	Transactions []*transaction.Transaction
+	// StartBlock			    int
+	// EndBlock					int
+	// UpdateInterval		    int
 }
 
-func Make() *Simulation {
-	return &Execution{
+func Make(pool *pool.Pool, transactions []*transaction.Transaction) *Simulation {
+	return &Simulation{
 		// Strategy:                strategy,
-		Pool:                    *pool.Pool,
-		Transactions:            []*transaction.Transaction,
-		StartBlock:              startTime,
-		EndBlock:                endTime,
-		UpdateInterval:          updateInterval, // In blocks, default 1
+		Pool:         pool,
+		Transactions: transactions,
+		// StartBlock:              startTime,
+		// EndBlock:                endTime,
+		// UpdateInterval:          updateInterval, // In blocks, default 1
 	}
 }
 
@@ -34,33 +34,39 @@ func (s *Simulation) Simulate() {
 	// strategy := s.Strategy
 	pool := s.Pool
 	transactions := s.Transactions
-	startBlock := s.StartBlock
-	endBlock := s.EndBlock
-	updateInterval := s.UpdateInterval
+	// startBlock := s.StartBlock
+	// endBlock := s.EndBlock
+	// updateInterval := s.UpdateInterval
 
-	for _, transaction := range transactions {
+	for _, t := range transactions {
 
-		if transaction.BlockNo < startBlock {
-			continue
-		}
+		// if transaction.BlockNo < startBlock {
+		// 	continue
+		// }
 
-		if transaction.BlockNo > s.EndBlock {
-			break
-		}
+		// if transaction.BlockNo > s.EndBlock {
+		// 	break
+		// }
 
-		switch transaction.Method {
+		switch t.Method {
 		case "MINT":
-			pool.Mint(transaction.MethodData.Owner, transaction.MethodData.TickLower, transaction.MethodData.TickUpper, transaction.MethodData.Amount)
+			methodData := t.MethodData
+			mintMethodData := methodData.(transaction.MintMethodData)
+			pool.Mint(mintMethodData.Owner, mintMethodData.TickLower, mintMethodData.TickUpper, mintMethodData.Amount)
 		case "BURN":
-			pool.Burn(transaction.MethodData.Owner, transaction.TickLower, transaction.TickUpper, transaction.Amount)
+			methodData := t.MethodData
+			burnMethodData := methodData.(transaction.BurnMethodData)
+			pool.Burn(burnMethodData.Owner, burnMethodData.TickLower, burnMethodData.TickUpper, burnMethodData.Amount)
 		case "SWAP":
 			zeroForOne := true
-			amount := transaction.MethodData.Amount1
-			if transaction.MethodData.Amount0.Cmp(big.NewInt(0)) >= 1 {
+			methodData := t.MethodData
+			swapMethodData := methodData.(transaction.SwapMethodData)
+			amount := swapMethodData.Amount1
+			if swapMethodData.Amount0.Cmp(big.NewInt(0)) >= 1 {
 				zeroForOne = false
-				amount = transaction.MethodData.Amount0
+				amount = swapMethodData.Amount0
 			}
-			pool.Swap(transaction.MethodData.Sender, transaction.MethodData.Recipient, zeroForOne, amount, constants.MaxUint160)
+			pool.Swap(swapMethodData.Sender, swapMethodData.Recipient, zeroForOne, amount, constants.MaxUint160)
 		}
 	}
 }
