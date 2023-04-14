@@ -158,11 +158,11 @@ func checkTicks(tickLower int, tickUpper int) {
 // initialized  -- a bool that indicates whether or not next is initialized
 //                 (because the function only searches within up to 256 ticks)
 func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte bool) (next int, initialized bool) {
-	// Find the boundaries of the word that would contain the tick.
-	wordLowerBound := tick - tick%256
-	wordUpperBound := wordLowerBound + 255
 	// Adjust for the tickSpacing.
 	compressed := tick / tickSpacing
+	// Find the boundaries of the word that would contain the tick.
+	wordLowerBound := compressed - compressed%256
+	wordUpperBound := wordLowerBound + 255
 	if tick < 0 && tick%tickSpacing != 0 {
 		compressed = compressed - 1
 	}
