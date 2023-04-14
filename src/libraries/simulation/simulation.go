@@ -3,6 +3,7 @@ package simulation
 // package executor
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
@@ -47,7 +48,10 @@ func (s *Simulation) Simulate() {
 		// if transaction.BlockNo > s.EndBlock {
 		// 	break
 		// }
-
+		fmt.Println()
+		fmt.Println()
+		fmt.Printf("Transaction: %+v", t)
+		fmt.Println()
 		switch t.Method {
 		case "MINT":
 			if t.Amount.Cmp(big.NewInt(0)) == 0 {
@@ -69,7 +73,7 @@ func (s *Simulation) Simulate() {
 			// swaps are executed in their entirety.
 			zeroForOne := false
 			amount := t.Amount1
-			if t.SqrtPriceX96.Cmp(s.Pool.Slot0.SqrtPriceX96) <= -1 {
+			if t.Amount0.Cmp(big.NewInt(0)) >= 1 {
 				zeroForOne = true
 				amount = t.Amount0
 			}

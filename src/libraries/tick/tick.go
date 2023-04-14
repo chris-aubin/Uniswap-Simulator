@@ -8,10 +8,6 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/liquidityMath"
 )
 
-var (
-	MaxUint128, _ = new(big.Int).SetString("0xffffffffffffffffffffffffffffffff", 16)
-)
-
 // Info stored for each initialized tick
 type Tick struct {
 	// The total position liquidity that references this tick.
@@ -42,14 +38,14 @@ func TicksTempToTicks(ticks *map[string]Tick) *Ticks {
 	tickData := make(map[int]*Tick)
 	for k, v := range *ticks {
 		tickIdx, _ := strconv.ParseInt(k, 10, 64)
-		tick := Tick{
+		tick := &Tick{
 			LiquidityGross:        v.LiquidityGross,
 			LiquidityNet:          v.LiquidityNet,
 			FeeGrowthOutside0X128: v.FeeGrowthOutside0X128,
 			FeeGrowthOutside1X128: v.FeeGrowthOutside1X128,
 			Initialized:           v.Initialized,
 		}
-		tickData[int(tickIdx)] = &tick
+		tickData[int(tickIdx)] = tick
 	}
 	return &Ticks{
 		TickData: tickData,
@@ -64,24 +60,36 @@ func tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 	minTick := (constants.MinTick / tickSpacing) * tickSpacing
 	maxTick := (constants.MaxTick / tickSpacing) * tickSpacing
 	numTicks := ((maxTick - minTick) / tickSpacing) + 1
-	result := new(big.Int).Div(MaxUint128, big.NewInt(int64(numTicks)))
+	result := new(big.Int).Div(constants.MaxUint128, big.NewInt(int64(numTicks)))
 	return result
 }
 
 // Solidity automatically initializes all values in maps, need to simulate that
 // behavior here.
 func (t *Ticks) Get(tick int) *Tick {
-	tickInfo, err := t.TickData[tick]
-	if err {
+	tickInfo, found := t.TickData[tick]
+	// fmt.Println("IN GET FUNCTION")
+	// fmt.Printf("Ticks: %+v", t)
+	// fmt.Println()
+	// fmt.Printf("tick: %+v", tick)
+	// fmt.Println()
+	// fmt.Printf("tickInfo: %+v", tickInfo)
+	// fmt.Println()
+	// fmt.Printf("found: %+v", found)
+	// fmt.Println()
+	// fmt.Printf("t.TickData[tick]: %+v", t.TickData[tick])
+	// fmt.Println()
+	if found {
 		return tickInfo
 	} else {
-		return &Tick{
+		t.TickData[tick] = &Tick{
 			LiquidityGross:        big.NewInt(0),
 			LiquidityNet:          big.NewInt(0),
 			FeeGrowthOutside0X128: big.NewInt(0),
 			FeeGrowthOutside1X128: big.NewInt(0),
 			Initialized:           false,
 		}
+		return t.TickData[tick]
 	}
 }
 
@@ -120,11 +128,16 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 	}
 
 	// Calculate fee growth inside
-	feeGrowthInside0X128 := new(big.Int)
-	feeGrowthInside1X128 := new(big.Int)
+	feeGrowthInside0X128 := new(big.Int).Sub(feeGrowthGlobal0X128, new(big.Int).Add(feeGrowthBelow0X128, feeGrowthAbove0X128))
+	feeGrowthInside1X128 := new(big.Int).Sub(feeGrowthGlobal1X128, new(big.Int).Add(feeGrowthBelow1X128, feeGrowthAbove1X128))
 
-	feeGrowthInside0X128.Sub(feeGrowthGlobal0X128, new(big.Int).Add(feeGrowthBelow0X128, feeGrowthAbove0X128))
-	feeGrowthInside1X128.Sub(feeGrowthGlobal1X128, new(big.Int).Add(feeGrowthBelow1X128, feeGrowthAbove1X128))
+	// Simulate solidity underflow
+	if feeGrowthInside0X128.Cmp(big.NewInt(0)) <= -1 {
+		feeGrowthInside0X128 = big.NewInt(0).Add(feeGrowthInside0X128, constants.Q256)
+	}
+	if feeGrowthInside1X128.Cmp(big.NewInt(0)) <= -1 {
+		feeGrowthInside1X128 = big.NewInt(0).Add(feeGrowthInside1X128, constants.Q256)
+	}
 
 	return feeGrowthInside0X128, feeGrowthInside1X128
 }
@@ -140,7 +153,13 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 // Returns flipped, a boolean that indicates whether the tick was flipped from initialized to uninitialized, or vice versa
 func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128, maxLiquidity *big.Int, upper bool) bool {
 	info := t.Get(tick)
-
+	// fmt.Printf("ticks: %+v", t.TickData)
+	// fmt.Println()
+	// fmt.Println("tickIdx: ", tick)
+	// fmt.Printf("info: %+v", info)
+	// fmt.Println()
+	// tickTemp, _ := t.TickData[tick]
+	// fmt.Printf("tickTemp: %+v", tickTemp)
 	liquidityGrossBefore := info.LiquidityGross
 	liquidityGrossAfter := liquidityMath.AddDelta(liquidityGrossBefore, liquidityDelta)
 
@@ -176,6 +195,7 @@ func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 // Clears data for a particular tick
 // Accepts tick, the tick index of the tick that will be cleared
 func (t *Ticks) Clear(tick int) {
+	// fmt.Println("CLEARING TICK ", tick)
 	delete(t.TickData, tick)
 }
 
@@ -185,6 +205,7 @@ func (t *Ticks) Clear(tick int) {
 // Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
 // Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
 func (t *Ticks) Cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) *big.Int {
+	// fmt.Println("CROSSING TICK ", tick)
 	info := t.Get(tick)
 	info.FeeGrowthOutside0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
 	info.FeeGrowthOutside1X128 = new(big.Int).Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)

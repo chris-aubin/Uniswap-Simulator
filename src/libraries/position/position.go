@@ -58,7 +58,7 @@ func (p *Position) Update(liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1
 	}
 }
 
-func (p *Position) Make() *Position {
+func Make() *Position {
 	return &Position{
 		Liquidity:                big.NewInt(0),
 		FeeGrowthInside0LastX128: big.NewInt(0),
