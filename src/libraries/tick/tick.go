@@ -191,9 +191,3 @@ func (t *Ticks) Cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.
 	liquidityNet := info.LiquidityNet
 	return liquidityNet
 }
-
-func Init() *Ticks {
-	return &Ticks{
-		TickData: make(map[int]*Tick),
-	}
-}
