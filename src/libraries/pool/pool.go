@@ -524,11 +524,9 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 		FeeProtocol:    cacheFeeProtocol,
 	}
 
-	var exactInput bool
+	exactInput := false
 	if amountSpecified.Cmp(big.NewInt(0)) >= 1 {
 		exactInput = true
-	} else {
-		exactInput = false
 	}
 
 	state := &SwapState{
