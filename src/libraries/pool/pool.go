@@ -277,8 +277,8 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 // position  -- the updated position
 func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liquidityDelta *big.Int) (position *position.Position) {
 	position_key := fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)
-	position, err := p.Positions[position_key]
-	if err {
+	position, found := p.Positions[position_key]
+	if !found {
 		message := fmt.Sprintf("pool.updatePosition: Position %s does not exist", position_key)
 		panic(message)
 	}
@@ -398,8 +398,8 @@ func (p *Pool) Collect(owner string, tickLower, tickUpper int, amount0Requested,
 	// We don't need to checkTicks here, because invalid positions will never
 	// have non-zero tokensOwed
 	position_key := fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)
-	position, err := p.Positions[position_key]
-	if err {
+	position, found := p.Positions[position_key]
+	if !found {
 		message := fmt.Sprintf("pool.Collect: Position %s does not exist", position_key)
 		panic(message)
 	}
