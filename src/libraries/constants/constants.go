@@ -21,7 +21,7 @@ var (
 	// MaxTick as a big.Int for use in calculations.
 	MaxTickBig = big.NewInt(887272)
 	// MinSqrtRatio as a big.Int for use in calculations.
-	MinSqrtRatioBig = new(big.Int)
+	MinSqrtRatioBig = big.NewInt(4295128739)
 	// The maximum value that can be returned by getSqrtRatioAtTick.
 	// Equivalent to getSqrtRatioAtTick(MaxTick).
 	MaxSqrtRatio = new(big.Int)
