@@ -543,7 +543,7 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 
 	// Continue swapping as long as we haven't used the entire input/output and
 	// haven't reached the price limit
-	for state.AmountSpecifiedRemaining.Cmp(big.NewInt(0)) >= 1 && state.SqrtPriceX96.Cmp(sqrtPriceLimitX96) <= -1 {
+	for (state.AmountSpecifiedRemaining.Cmp(big.NewInt(0)) != 0) && (state.SqrtPriceX96.Cmp(sqrtPriceLimitX96) != 0) {
 		step := new(StepComputations)
 		step.SqrtPriceStartX96 = state.SqrtPriceX96
 		step.TickNext, step.Initialized = p.nextInitializedTickWithinOneWord(
