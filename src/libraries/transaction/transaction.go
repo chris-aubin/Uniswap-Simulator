@@ -22,6 +22,8 @@ type Transaction struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Liquidity    *big.Int `json:"liquidity"`
 	Tick         int      `json:"tick"`
+	Paid0        *big.Int `json:"paid0"`
+	Paid1        *big.Int `json:"paid1"`
 }
 
 // func (t Transaction) MarshalJSON() ([]byte, error) {
