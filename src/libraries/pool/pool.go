@@ -704,3 +704,31 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 	// }
 	return
 }
+
+// Just emulate how flashes change pool state
+func (p *Pool) Flash(paid0, paid1 *big.Int) {
+	if paid0.Cmp(big.NewInt(0)) >= 1 {
+		feeProtocol0 := p.Slot0.FeeProtocol % 16
+		fees0 := big.NewInt(0)
+		if feeProtocol0 != 0 {
+			fees0 = new(big.Int).Div(paid0, big.NewInt(int64(feeProtocol0)))
+		}
+
+		if fees0.Cmp(big.NewInt(0)) >= 1 {
+			p.ProtocolFees.Token0 = new(big.Int).Add(p.ProtocolFees.Token0, fees0)
+		}
+		p.FeeGrowthGlobal0X128 = new(big.Int).Add(p.FeeGrowthGlobal0X128, fullMath.MulDiv(new(big.Int).Sub(paid0, fees0), constants.Q128, p.Liquidity))
+	}
+	if paid1.Cmp(big.NewInt(0)) >= 1 {
+		feeProtocol1 := p.Slot0.FeeProtocol >> 4
+		fees1 := big.NewInt(0)
+		if feeProtocol1 != 0 {
+			fees1 = new(big.Int).Div(paid1, big.NewInt(int64(feeProtocol1)))
+		}
+		if fees1.Cmp(big.NewInt(0)) >= 1 {
+			p.ProtocolFees.Token1 = new(big.Int).Add(p.ProtocolFees.Token1, fees1)
+		}
+		p.FeeGrowthGlobal1X128 = new(big.Int).Add(p.FeeGrowthGlobal1X128, fullMath.MulDiv(new(big.Int).Sub(paid1, fees1), constants.Q128, p.Liquidity))
+	}
+
+}
