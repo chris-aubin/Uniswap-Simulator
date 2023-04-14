@@ -105,6 +105,7 @@ type PoolTemp struct {
 }
 
 func PoolTempToPool(poolTemp *PoolTemp) *Pool {
+	ticks := tick.TicksTempToTicks(poolTemp.Ticks)
 	pool := &Pool{
 		Token0:               poolTemp.Token0,
 		Token1:               poolTemp.Token1,
@@ -116,7 +117,7 @@ func PoolTempToPool(poolTemp *PoolTemp) *Pool {
 		FeeGrowthGlobal1X128: poolTemp.FeeGrowthGlobal1X128,
 		ProtocolFees:         poolTemp.ProtocolFees,
 		Liquidity:            poolTemp.Liquidity,
-		Ticks:                tick.TicksTempToTicks(poolTemp.Ticks),
+		Ticks:                ticks,
 		Positions:            poolTemp.Positions,
 		Balance0:             poolTemp.Balance0,
 		Balance1:             poolTemp.Balance1,
