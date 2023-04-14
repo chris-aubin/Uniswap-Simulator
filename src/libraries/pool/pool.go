@@ -506,13 +506,15 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 	var cacheFeeProtocol int
 	var stateFeeGrowthGlobalX128 *big.Int
 	if zeroForOne {
-		if !((sqrtPriceLimitX96.Cmp(slot0Start.SqrtPriceX96) <= -1) && (sqrtPriceLimitX96.Cmp(constants.MinTickBig) >= 1)) {
+		// sqrtPriceLimitX96 < slot0Start.sqrtPriceX96 && sqrtPriceLimitX96 > TickMath.MIN_SQRT_RATIO
+		if !((sqrtPriceLimitX96.Cmp(slot0Start.SqrtPriceX96) <= -1) && (sqrtPriceLimitX96.Cmp(constants.MinSqrtRatioBig) >= 1)) {
 			panic("pool.Swap: Invalid price limit")
 		}
 		cacheFeeProtocol = slot0Start.FeeProtocol % 16
 		stateFeeGrowthGlobalX128 = p.FeeGrowthGlobal0X128
 	} else {
-		if !((sqrtPriceLimitX96.Cmp(slot0Start.SqrtPriceX96) >= 1) && (sqrtPriceLimitX96.Cmp(constants.MaxTickBig) <= -1)) {
+		// sqrtPriceLimitX96 > slot0Start.sqrtPriceX96 && sqrtPriceLimitX96 < TickMath.MAX_SQRT_RATIO
+		if !((sqrtPriceLimitX96.Cmp(slot0Start.SqrtPriceX96) >= 1) && (sqrtPriceLimitX96.Cmp(constants.MaxSqrtRatio) <= -1)) {
 			panic("pool.Swap: Invalid price limit")
 		}
 		cacheFeeProtocol = slot0Start.FeeProtocol >> 4
