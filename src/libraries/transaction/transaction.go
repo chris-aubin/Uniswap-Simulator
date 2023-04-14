@@ -5,7 +5,7 @@ import (
 )
 
 type Transaction struct {
-	BlockNo      string   `json:"blockNo"`
+	BlockNo      int      `json:"blockNo"`
 	Timestamp    int      `json:"timestamp"`
 	GasPrice     int      `json:"gasPrice"`
 	GasUsed      int      `json:"gasUsed"`
