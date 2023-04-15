@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
-	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/simulation"
 )
 
 // StrategyPosition represents a position held by a strategy.
@@ -13,6 +12,15 @@ type StrategyPosition struct {
 	TickLower int
 	TickUpper int
 	Amount    *big.Int
+}
+
+type GasAvs struct {
+	// Av. gas required to mint a position
+	MintGas *big.Int
+	// Av. gas required to burn a position
+	BurnGas *big.Int
+	// Av. gas required to collect fees from a position
+	CollectGas *big.Int
 }
 
 type Strategy struct {
@@ -25,9 +33,9 @@ type Strategy struct {
 	// Positions held by the strategy
 	Positions []*StrategyPosition
 	// Average gas price for mints, burns and swaps
-	GasAvs *simulation.GasAvs
+	GasAvs *GasAvs
 	// Initialize the strategy with the given amounts
-	Init func(*big.Int, *big.Int, *pool.Pool, *simulation.GasAvs) *Strategy
+	Init func(*big.Int, *big.Int, *pool.Pool, *GasAvs) *Strategy
 	// Adjust strategy positions positions (called at update interval)
 	Rebalance func(*pool.Pool)
 	// Burn all positions and collect all tokens
