@@ -9,22 +9,20 @@ import (
 )
 
 type Simulation struct {
-	Strategy       *strategy.Strategy
-	Pool           *pool.Pool
-	Transactions   []transaction.Transaction
-	StartBlock     int
-	EndBlock       int
-	UpdateInterval int
+	Strategy     *strategy.Strategy
+	Pool         *pool.Pool
+	Transactions []transaction.Transaction
+	StartBlock   int
+	EndBlock     int
 }
 
 func Make(pool *pool.Pool, transactions []transaction.Transaction, strategy *strategy.Strategy, startBlock, endBlock, updateInterval int) *Simulation {
 	return &Simulation{
-		Strategy:       strategy,
-		Pool:           pool,
-		Transactions:   transactions,
-		StartBlock:     startBlock,
-		EndBlock:       endBlock,
-		UpdateInterval: updateInterval, // In blocks, default 1
+		Strategy:     strategy,
+		Pool:         pool,
+		Transactions: transactions,
+		StartBlock:   startBlock,
+		EndBlock:     endBlock,
 	}
 }
 
@@ -40,7 +38,7 @@ func (s *Simulation) Simulate() {
 			break
 		}
 
-		if (t.BlockNo-s.StartBlock)%s.UpdateInterval == 0 {
+		if (t.BlockNo-s.StartBlock)%s.Strategy.UpdateInterval == 0 {
 			// Call rebalance function
 			s.Strategy.Rebalance(s.Pool)
 		}

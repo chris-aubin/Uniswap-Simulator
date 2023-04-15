@@ -30,6 +30,8 @@ type Strategy struct {
 	Amount0 *big.Int
 	// Amount of token1 in the strategy
 	Amount1 *big.Int
+	// Update interval for the strategy (how regularly to rebalance) in blocks
+	UpdateInterval int
 	// Positions held by the strategy
 	Positions []*StrategyPosition
 	// Average gas price for mints, burns and swaps
