@@ -19,6 +19,10 @@ type GasAvs struct {
 	MintGas *big.Int
 	// Av. gas required to burn a position
 	BurnGas *big.Int
+	// Av. gas required to swap
+	SwapGas *big.Int
+	// Av. gas required to flash (likely unnecessary for strategies)
+	FlashGas *big.Int
 	// Av. gas required to collect fees from a position
 	CollectGas *big.Int
 }
@@ -37,7 +41,7 @@ type Strategy struct {
 	// Average gas price for mints, burns and swaps
 	GasAvs *GasAvs
 	// Initialize the strategy with the given amounts
-	Init func(*big.Int, *big.Int, *pool.Pool, *GasAvs) *Strategy
+	Make func(*big.Int, *big.Int, *pool.Pool, *GasAvs) *Strategy
 	// Adjust strategy positions positions (called at update interval)
 	Rebalance func(*pool.Pool)
 	// Burn all positions and collect all tokens
