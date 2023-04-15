@@ -1,7 +1,11 @@
 package transaction
 
 import (
+	"fmt"
 	"math/big"
+
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
 )
 
 type Transaction struct {
@@ -26,61 +30,38 @@ type Transaction struct {
 	Paid1        *big.Int `json:"paid1"`
 }
 
-// func (t Transaction) MarshalJSON() ([]byte, error) {
-// 	switch t.Method {
-// 	case "MINT":
-// 		return json.Marshal(&Transaction{
-// 			BlockNo:   t.BlockNo,
-// 			Timestamp: t.Timestamp,
-// 			GasPrice:  t.GasPrice,
-// 			GasUsed:   t.GasUsed,
-// 			GasTotal:  t.GasTotal,
-// 			Method:    t.Method,
-// 			MethodData: MintMethodData{
-// 				Sender:    t.MethodData.(MintMethodData).Sender,
-// 				Owner:     t.MethodData.(MintMethodData).Owner,
-// 				TickLower: t.MethodData.(MintMethodData).TickLower,
-// 				TickUpper: t.MethodData.(MintMethodData).TickUpper,
-// 				Amount:    t.MethodData.(MintMethodData).Amount,
-// 				Amount0:   t.MethodData.(MintMethodData).Amount0,
-// 				Amount1:   t.MethodData.(MintMethodData).Amount1,
-// 			},
-// 		})
-// 	case "BURN":
-// 		return json.Marshal(&Transaction{
-// 			BlockNo:   t.BlockNo,
-// 			Timestamp: t.Timestamp,
-// 			GasPrice:  t.GasPrice,
-// 			GasUsed:   t.GasUsed,
-// 			GasTotal:  t.GasTotal,
-// 			Method:    t.Method,
-// 			MethodData: BurnMethodData{
-// 				Owner:     t.MethodData.(BurnMethodData).Owner,
-// 				TickLower: t.MethodData.(BurnMethodData).TickLower,
-// 				TickUpper: t.MethodData.(BurnMethodData).TickUpper,
-// 				Amount:    t.MethodData.(BurnMethodData).Amount,
-// 				Amount0:   t.MethodData.(BurnMethodData).Amount0,
-// 				Amount1:   t.MethodData.(BurnMethodData).Amount1,
-// 			},
-// 		})
-// 	case "SWAP":
-// 		return json.Marshal(&Transaction{
-// 			BlockNo:   t.BlockNo,
-// 			Timestamp: t.Timestamp,
-// 			GasPrice:  t.GasPrice,
-// 			GasUsed:   t.GasUsed,
-// 			GasTotal:  t.GasTotal,
-// 			Method:    t.Method,
-// 			MethodData: SwapMethodData{
-// 				Sender:       t.MethodData.(SwapMethodData).Sender,
-// 				Recipient:    t.MethodData.(SwapMethodData).Recipient,
-// 				Amount0:      t.MethodData.(SwapMethodData).Amount0,
-// 				Amount1:      t.MethodData.(SwapMethodData).Amount1,
-// 				SqrtPriceX96: t.MethodData.(SwapMethodData).SqrtPriceX96,
-// 				Liquidity:    t.MethodData.(SwapMethodData).Liquidity,
-// 				Tick:         t.MethodData.(SwapMethodData).Tick,
-// 			},
-// 		})
-// 	}
-// 	panic("unreachable")
-// }
+func Execute(t Transaction, p *pool.Pool) {
+	fmt.Println()
+	fmt.Println()
+	fmt.Printf("Transaction: %+v", t)
+	fmt.Println()
+	switch t.Method {
+	case "MINT":
+		if t.Amount.Cmp(big.NewInt(0)) == 0 {
+			return
+		}
+		p.Mint(t.Owner, t.TickLower, t.TickUpper, t.Amount)
+	case "BURN":
+		if t.Amount.Cmp(big.NewInt(0)) == 0 {
+			return
+		}
+		p.Burn(t.Owner, t.TickLower, t.TickUpper, t.Amount)
+	case "SWAP":
+		// Is the swap token0 for token1 or token1 for token0? The value
+		// that is greater than 0 is the token that the user provided.
+		// There's no way to tell whether the swap was for an exact input
+		// or an exact output, so we'll just assume that all swaps are for
+		// an exact input (by providing the positive amount). We also set
+		// the price limit to the max value of a uint160 to ensure that all
+		// swaps are executed in their entirety.
+		zeroForOne := false
+		amount := t.Amount1
+		if t.Amount0.Cmp(big.NewInt(0)) >= 1 {
+			zeroForOne = true
+			amount = t.Amount0
+		}
+		p.Swap(t.Sender, t.Recipient, zeroForOne, amount, new(big.Int).Sub(constants.MaxSqrtRatio, big.NewInt(1)))
+	case "FLASH":
+		p.Flash(t.Paid0, t.Paid1)
+	}
+}
