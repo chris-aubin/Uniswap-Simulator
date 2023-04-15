@@ -5,6 +5,7 @@ import (
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/tickMath"
 )
 
 type V2Strategy struct {
@@ -33,28 +34,29 @@ func (s *V2Strategy) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
 		s.Amount0 = new(big.Int).Add(s.Amount0, amount0)
 		s.Amount1 = new(big.Int).Add(s.Amount1, amount1)
 	}
-	amount0, amount1 = new(big.Int).Set(Amount0), s.Amount1.Clone()
+	amount0 = new(big.Int).Set(s.Amount0)
+	amount1 = new(big.Int).Set(s.Amount1)
 	s.Positions = *new([]*StrategyPosition)
 	return
 }
 
-func (s *V2Strategy) mintPosition(tickLower, tickUpper int) {
-	sqrtRatioAX96 := tickmath.GetSqrtRatioAtTick(tickLower)
-	sqrtRatioBX96 := tickmath.GetSqrtRatioAtTick(tickUpper)
+func (s *V2Strategy) mintPosition(tickLower, tickUpper int, p *pool.Pool) {
+	sqrtRatioAX96 := tickMath.GetSqrtRatioAtTick(tickLower)
+	sqrtRatioBX96 := tickMath.GetSqrtRatioAtTick(tickUpper)
 
-	amount := la.GetLiquidityForAmount(s.Pool.SqrtRatioX96, sqrtRatioAX96, sqrtRatioBX96, s.Amount0, s.Amount1)
-	if amount.IsZero() {
-		return
-	}
-	s.Positions = append(s.Positions, Position{
-		amount:    amount,
-		tickLower: tickLower,
-		tickUpper: tickUpper,
-	})
+	// amount := la.GetLiquidityForAmount(s.Pool.SqrtRatioX96, sqrtRatioAX96, sqrtRatioBX96, s.Amount0, s.Amount1)
+	// if amount.IsZero() {
+	// 	return
+	// }
+	// s.Positions = append(s.Positions, StrategyPosition{
+	// 	amount:    amount,
+	// 	tickLower: tickLower,
+	// 	tickUpper: tickUpper,
+	// })
 
-	amount0, amount1 := s.Pool.MintStrategy(tickLower, tickUpper, amount)
-	s.Amount0.Sub(s.Amount0, amount0)
-	s.Amount1.Sub(s.Amount1, amount1)
+	// amount0, amount1 := s.Pool.MintStrategy(tickLower, tickUpper, amount)
+	// s.Amount0.Sub(s.Amount0, amount0)
+	// s.Amount1.Sub(s.Amount1, amount1)
 }
 
 func (s *V2Strategy) Init() (amount0, amount1 *big.Int) {
@@ -64,6 +66,6 @@ func (s *V2Strategy) Init() (amount0, amount1 *big.Int) {
 	// New Positions
 	tickLower := -887270
 	tickUpper := -tickLower
-	s.mintPosition(tickLower, tickUpper)
+	// s.mintPosition(tickLower, tickUpper)
 	return
 }
