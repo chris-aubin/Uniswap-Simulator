@@ -455,6 +455,13 @@ func (p *Pool) Mint(recipient string, tickLower, tickUpper int, amount *big.Int)
 
 // Collects tokens owed to the given position
 //
+// Does not recompute fees earned, which must be done either via mint or burn of
+// any amount of liquidity. Collect must be called by the position owner. To
+// withdraw only token0 or only token1, amount0Requested or amount1Requested may
+// be set to zero. To withdraw all tokens owed, caller may pass any value
+// greater than the actual tokens owed, e.g. type(uint128).max. Tokens owed may
+// be from accumulated swap fees or burned liquidity.
+//
 // Arguments:
 // owner            -- the owner of the position
 // tickLower        -- the lower tick of the position's tick range

@@ -9,7 +9,7 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/utilities"
 )
 
-type V2Strategy struct {
+type V2StrategyReinvesting struct {
 	Address      string
 	Amount0      *big.Int
 	Amount1      *big.Int
@@ -18,11 +18,11 @@ type V2Strategy struct {
 	Positions    []*StrategyPosition
 }
 
-func (s *V2Strategy) Rebalance(p *pool.Pool) {
+func (s *V2StrategyReinvesting) Rebalance(p *pool.Pool) {
 	return
 }
 
-func (s *V2Strategy) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
+func (s *V2StrategyReinvesting) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
 	poolTemp := p
 	for _, stratPos := range s.Positions {
 		poolTemp.Burn(s.Address, stratPos.TickLower, stratPos.TickUpper, stratPos.Amount)
@@ -38,7 +38,7 @@ func (s *V2Strategy) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
 	return
 }
 
-func (s *V2Strategy) mintPosition(p *pool.Pool) {
+func (s *V2StrategyReinvesting) mintPosition(p *pool.Pool) {
 	s.GasAllowance = new(big.Int).Sub(s.GasAllowance, s.GasAvs.MintGas)
 	tickLower := constants.MinTick
 	tickUpper := constants.MaxTick
@@ -55,18 +55,19 @@ func (s *V2Strategy) mintPosition(p *pool.Pool) {
 		Amount:    amount,
 	})
 
+	// amount0, amount1 := s.Pool.MintStrategy(tickLower, tickUpper, amount)
+	// s.Amount0.Sub(s.Amount0, amount0)
+	// s.Amount1.Sub(s.Amount1, amount1)
 }
 
-func (s *V2Strategy) Init(amount0, amount1 *big.Int, p *pool.Pool, g *GasAvs) {
-	s.mintPosition(p)
-}
-
-func MakeV2Strategy(amount0, amount1 *big.Int, p *pool.Pool, g *GasAvs) *V2Strategy {
-	s := new(Strategy)
+func Make(amount0, amount1 *big.Int, p *pool.Pool, g *GasAvs) {
+	s := new(V2StrategyReinvesting)
 	s.Address = "0x0000000000000000000000000000000000000001"
 	s.Amount1 = new(big.Int).Set(amount0)
 	s.Amount1 = new(big.Int).Set(amount1)
 	s.GasAvs = g
 	s.Positions = make([]*StrategyPosition, 0)
-	return s
+
+	s.mintPosition(p)
+	return
 }

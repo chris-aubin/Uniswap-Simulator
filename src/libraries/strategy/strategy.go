@@ -6,6 +6,10 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
 )
 
+strategies := map[string]func(){
+	"v2": MakeV2Strategy
+
+}
 // StrategyPosition represents a position held by a strategy.
 // Positions are indexed using the owner's address, tickLower, and tickUpper.
 type StrategyPosition struct {
@@ -27,23 +31,21 @@ type GasAvs struct {
 	CollectGas *big.Int
 }
 
-type Strategy struct {
-	// Address of the strategy
-	Address string
-	// Amount of token0 in the strategy
-	Amount0 *big.Int
-	// Amount of token1 in the strategy
-	Amount1 *big.Int
-	// Update interval for the strategy (how regularly to rebalance) in blocks
-	UpdateInterval int
-	// Positions held by the strategy
-	Positions []*StrategyPosition
-	// Average gas price for mints, burns and swaps
-	GasAvs *GasAvs
+type StrategyMethods interface {
 	// Initialize the strategy with the given amounts
-	Make func(*big.Int, *big.Int, *pool.Pool, *GasAvs) *Strategy
+	Init (*big.Int, *big.Int, *pool.Pool, *GasAvs)
 	// Adjust strategy positions positions (called at update interval)
-	Rebalance func(*pool.Pool)
+	Rebalance (*pool.Pool)
 	// Burn all positions and collect all tokens
-	BurnAll func(*pool.Pool) (*big.Int, *big.Int)
+	BurnAll (*pool.Pool) (*big.Int, *big.Int)
+}
+
+type Strategy struct {
+	Address      string
+	Amount0      *big.Int
+	Amount1      *big.Int
+	GasAllowance *big.Int
+	GasAvs       *GasAvs
+	Positions    []*StrategyPosition
+	StrategyMethods
 }
