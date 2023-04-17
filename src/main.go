@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/simulation"
+	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/strategy"
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/transaction"
 )
 
@@ -37,23 +39,47 @@ func getPoolState(poolRaw []byte) *pool.Pool {
 	return p
 }
 
-func getGasAvs(gasAvsRaw []byte) *map[string]float64 {
+func getGasAvs(gasAvsRaw []byte) *strategy.GasAvs {
 	type getGasAvsInput struct {
-		Data map[string]float64
+		Data strategy.GasAvs
 	}
 	var gasAvsInput getGasAvsInput
-	var gasAvs map[string]float64
+	var gasAvs strategy.GasAvs
 
 	json.Unmarshal(gasAvsRaw, &gasAvsInput)
 	gasAvs = gasAvsInput.Data
+
+	if gasAvs.MintGas.Cmp(big.NewInt(-1)) == 0 {
+		gasAvs.MintGas = big.NewInt(35000)
+	}
+	if gasAvs.BurnGas.Cmp(big.NewInt(-1)) == 0 {
+		gasAvs.BurnGas = big.NewInt(20000)
+	}
+	if gasAvs.SwapGas.Cmp(big.NewInt(-1)) == 0 {
+		gasAvs.SwapGas = big.NewInt(20000)
+	}
+	if gasAvs.FlashGas.Cmp(big.NewInt(-1)) == 0 {
+		gasAvs.FlashGas = big.NewInt(20000)
+	}
+	if gasAvs.CollectGas.Cmp(big.NewInt(-1)) == 0 {
+		gasAvs.CollectGas = big.NewInt(20000)
+	}
+
 	return &gasAvs
 }
 
 func main() {
 	relPathToTransactions := flag.String("transactions", "../data/transactions.txt", "Path to file containing transactions for simulation")
 	relPathToPoolState := flag.String("pool", "../data/pool.txt", "Path to file containing pool state for simulation")
-	// relPathToGasAvs := flag.String("gasAvs", "../data/gasAvs.txt", "Path to file containing gas averages for simulation")
+	relPathToGas := flag.String("gas", "../data/gas.txt", "Path to file containing gas averages for simulation")
+	stratIdentifier := flag.String("strat", "v2", "Strategy identifier")
+	amount0String := flag.String("amount", "100", "Strategy amount0")
+	amount1String := flag.String("amount1", "100", "Strategy amount1")
+	updateInterval := flag.Int("updateInterval", 1, "Update interval for simulation")
 	flag.Parse()
+
+	amount0, _ := new(big.Int).SetString(*amount0String, 10)
+	amount1, _ := new(big.Int).SetString(*amount1String, 10)
 
 	absPathToTransactions, err := filepath.Abs(*relPathToTransactions)
 	if err != nil {
@@ -67,11 +93,11 @@ func main() {
 		panic(message)
 	}
 
-	// absPathToGasAvs, err := filepath.Abs(*relPathToGasAvs)
-	// if err != nil {
-	// 	message := fmt.Sprint("Failed to get absolute path to file containing gas averages:", err)
-	// 	panic(message)
-	// }
+	absPathToGas, err := filepath.Abs(*relPathToGas)
+	if err != nil {
+		message := fmt.Sprint("Failed to get absolute path to file containing gas averages:", err)
+		panic(message)
+	}
 
 	transactionsRaw, err := os.ReadFile(absPathToTransactions)
 	if err != nil {
@@ -85,24 +111,23 @@ func main() {
 		panic(message)
 	}
 
-	// gasAvsRaw, err := os.ReadFile(absPathToGasAvs)
-	// if err != nil {
-	// 	message := fmt.Sprintf("Error reading gas averages file at path (relative path, absolute path): %s, %s, %v", *relPathToGasAvs, absPathToGasAvs, err)
-	// 	panic(message)
-	// }
+	gasRaw, err := os.ReadFile(absPathToGas)
+	if err != nil {
+		message := fmt.Sprintf("Error reading gas averages file at path (relative path, absolute path): %s, %s, %v", *relPathToGas, absPathToGas, err)
+		panic(message)
+	}
 
-	transactions := getTransactions(transactionsRaw)
-	poolState := getPoolState(poolStateRaw)
-	// gasAvs := getGasAvs(gasAvsRaw)
+	t := getTransactions(transactionsRaw)
+	p := getPoolState(poolStateRaw)
+	g := getGasAvs(gasRaw)
 
-	s := simulation.Make(poolState, transactions)
+	strat := strategy.Make(amount0, amount1, p, g, *stratIdentifier, *updateInterval)
+
+	s := simulation.Make(p, t, strat)
 
 	// Save pool state before simulation
 	poolJSON, _ := json.MarshalIndent(s.Pool, "", "    ")
-	f, e := os.Create("poolBefore.txt")
-	if e != nil {
-		panic(e)
-	}
+	f, _ := os.Create("poolBefore.txt")
 	f.Write(poolJSON)
 	f.Close()
 
@@ -113,4 +138,10 @@ func main() {
 	f, _ = os.Create("poolAfter.txt")
 	f.Write(poolJSON)
 	f.Close()
+
+	// Save strategy after to file
+	amount0, amount1, gasUsed := s.Strategy.Results(p)
+	fmt.Println(amount0)
+	fmt.Println(amount1)
+	fmt.Println(gasUsed)
 }
