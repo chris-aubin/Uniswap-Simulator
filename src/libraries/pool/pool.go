@@ -452,7 +452,18 @@ func (p *Pool) Collect(owner string, tickLower, tickUpper int, amount0Requested,
 	return
 }
 
-//
+// Burn liquidity from the sender and account tokens owed for the liquidity to the position
+// Parameters:​
+
+// Name	Type	Description
+// tickLower	int24	The lower tick of the position for which to burn liquidity
+// tickUpper	int24	The upper tick of the position for which to burn liquidity
+// amount	uint128	How much liquidity to burn
+// Return Values:​
+
+// Name	Type	Description
+// amount0	uint256	The amount of token0 sent to the recipient
+// amount1	uint256	The amount of token1 sent to the recipient
 func (p *Pool) Burn(owner string, tickLower, tickUpper int, amount *big.Int) (amount0, amount1 *big.Int) {
 	fmt.Println("BURN")
 	fmt.Printf("BURN - owner: %s", owner)
