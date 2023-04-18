@@ -73,8 +73,8 @@ func main() {
 	relPathToPoolState := flag.String("pool", "../data/pool.txt", "Path to file containing pool state for simulation")
 	relPathToGas := flag.String("gas", "../data/gas.txt", "Path to file containing gas averages for simulation")
 	stratIdentifier := flag.String("strat", "v2", "Strategy identifier")
-	amount0String := flag.String("amount", "100", "Strategy amount0")
-	amount1String := flag.String("amount1", "100", "Strategy amount1")
+	amount0String := flag.String("amount", "33", "Strategy amount0")               // 33*10^-6 BTC ~1 USD on 18/04/2023
+	amount1String := flag.String("amount1", "480000000000000", "Strategy amount1") // 480000000000000*10^-18 ETH ~1 USD on 18/04/2023
 	updateInterval := flag.Int("updateInterval", 1, "Update interval for simulation")
 	flag.Parse()
 
