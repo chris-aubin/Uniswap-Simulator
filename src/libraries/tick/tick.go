@@ -68,17 +68,6 @@ func tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 // behavior here.
 func (t *Ticks) Get(tick int) *Tick {
 	tickInfo, found := t.TickData[tick]
-	// fmt.Println("IN GET FUNCTION")
-	// fmt.Printf("Ticks: %+v", t)
-	// fmt.Println()
-	// fmt.Printf("tick: %+v", tick)
-	// fmt.Println()
-	// fmt.Printf("tickInfo: %+v", tickInfo)
-	// fmt.Println()
-	// fmt.Printf("found: %+v", found)
-	// fmt.Println()
-	// fmt.Printf("t.TickData[tick]: %+v", t.TickData[tick])
-	// fmt.Println()
 	if found {
 		return tickInfo
 	} else {
@@ -153,13 +142,6 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 // Returns flipped, a boolean that indicates whether the tick was flipped from initialized to uninitialized, or vice versa
 func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128, maxLiquidity *big.Int, upper bool) bool {
 	info := t.Get(tick)
-	// fmt.Printf("ticks: %+v", t.TickData)
-	// fmt.Println()
-	// fmt.Println("tickIdx: ", tick)
-	// fmt.Printf("info: %+v", info)
-	// fmt.Println()
-	// tickTemp, _ := t.TickData[tick]
-	// fmt.Printf("tickTemp: %+v", tickTemp)
 	liquidityGrossBefore := info.LiquidityGross
 	liquidityGrossAfter := liquidityMath.AddDelta(liquidityGrossBefore, liquidityDelta)
 
@@ -195,7 +177,6 @@ func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 // Clears data for a particular tick
 // Accepts tick, the tick index of the tick that will be cleared
 func (t *Ticks) Clear(tick int) {
-	// fmt.Println("CLEARING TICK ", tick)
 	delete(t.TickData, tick)
 }
 
@@ -205,7 +186,6 @@ func (t *Ticks) Clear(tick int) {
 // Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
 // Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
 func (t *Ticks) Cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) *big.Int {
-	// fmt.Println("CROSSING TICK ", tick)
 	info := t.Get(tick)
 	info.FeeGrowthOutside0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)
 	info.FeeGrowthOutside1X128 = new(big.Int).Sub(feeGrowthGlobal1X128, info.FeeGrowthOutside1X128)
