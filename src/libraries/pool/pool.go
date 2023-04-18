@@ -166,19 +166,12 @@ func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte bool)
 	if tick < 0 && tick%tickSpacing != 0 {
 		compressed = compressed - 1
 	}
-	// fmt.Println("wordLowerBound", wordLowerBound)
-	// fmt.Println("wordUpperBound", wordUpperBound)
-	// fmt.Println("compressed", compressed)
-	// fmt.Println("lte", lte)
 	if lte {
 		// Search for the closest initialized tick, within the word, with
 		// tick_idx less than or equal to tick.
 		for i := compressed; i >= wordLowerBound; i-- {
-			// fmt.Println("i", i)
 			tick_idx := i * tickSpacing
 			tick := p.Ticks.Get(tick_idx)
-			// fmt.Printf("tick: %+v", tick)
-			// fmt.Println()
 			if tick.Initialized {
 				return tick_idx, true
 			} else {
@@ -192,11 +185,8 @@ func (p *Pool) nextInitializedTickWithinOneWord(tick, tickSpacing int, lte bool)
 		// Search for the closest initialized tick, within the word, with
 		// tick_idx greater than tick.
 		for i := compressed + 1; i <= wordUpperBound; i++ {
-			// fmt.Println("i", i)
 			tick_idx := i * tickSpacing
 			tick := p.Ticks.Get(tick_idx)
-			// fmt.Printf("tick: %+v", tick)
-			// fmt.Println()
 			if tick.Initialized {
 				return tick_idx, true
 			} else {
@@ -236,12 +226,7 @@ type modifyPositionParams struct {
 func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.Position, amount0 *big.Int, amount1 *big.Int) {
 	checkTicks(params.TickLower, params.TickUpper)
 	slot0 := p.Slot0
-	fmt.Println("MODIFYPOSITION")
-	fmt.Printf("MODIFYPOSITION - Params: %+v", params)
-	fmt.Println()
 	position = p.updatePosition(params.Owner, params.TickLower, params.TickUpper, slot0.Tick, params.LiquidityDelta, params.Mint)
-	fmt.Printf("MODIFYPOSITION - Position: %+v", position)
-	fmt.Println()
 	if params.LiquidityDelta.Cmp(big.NewInt(0)) != 0 {
 		if slot0.Tick < params.TickLower {
 			// Current tick is below the passed range; liquidity can only become in range by crossing from left to
@@ -252,7 +237,6 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 				params.LiquidityDelta,
 			)
 			amount1 = big.NewInt(0)
-			// fmt.Println("modifyPosition - AMOUNT0: ", amount0)
 		} else if slot0.Tick < params.TickUpper {
 			// Current tick is inside the passed range
 			liquidityBefore := p.Liquidity
@@ -267,13 +251,7 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 				slot0.SqrtPriceX96,
 				params.LiquidityDelta,
 			)
-			// fmt.Println("modifyPosition - AMOUNT0: ", amount0)
-			// fmt.Println("modifyPosition - AMOUNT1: ", amount1)
-			// fmt.Println("modifyPosition - CHANGING LIQUIDITY")
-			// fmt.Println("modifyPosition - Liquidity before: ", p.Liquidity)
-			// fmt.Println("modifyPosition - Liquidity delta: ", params.LiquidityDelta)
 			p.Liquidity = liquidityMath.AddDelta(liquidityBefore, params.LiquidityDelta)
-			// fmt.Println("modifyPosition - Liquidity after: ", p.Liquidity)
 		} else {
 			// Current tick is above the passed range; liquidity can only become in range by crossing from right to
 			// left, when we'll need _more_ token1 (it's becoming more valuable) so user must provide it
@@ -283,13 +261,9 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 				tickMath.GetSqrtRatioAtTick(params.TickUpper),
 				params.LiquidityDelta,
 			)
-			// fmt.Println("AMOUNT1: ", amount0)
+
 		}
 	}
-	// fmt.Printf("modifyPosition - amount0: %+v", amount0)
-	// fmt.Println()
-	// fmt.Printf("modifyPosition - amount1: %+v", amount1)
-	// fmt.Println()
 	return
 }
 
@@ -305,26 +279,8 @@ func (p *Pool) modifyPosition(params *modifyPositionParams) (position *position.
 func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liquidityDelta *big.Int, mint bool) (pos *position.Position) {
 	position_key := fmt.Sprintf("%s%d%d", owner, tickLower, tickUpper)
 	pos, found := p.Positions[position_key]
-	fmt.Println("UPDATEPOSITION")
-	fmt.Printf("UPDATEPOSITION - owner: %+v", owner)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - tickLower: %+v", tickLower)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - tickUpper: %+v", tickUpper)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - tick: %+v", tick)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - liquidityDelta: %+v", liquidityDelta)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - Position key: %s", position_key)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - Position found: %t", found)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - Position: %+v", pos)
-	fmt.Println()
 	if !found {
 		if mint {
-			fmt.Println("UPDATEPOSITION - Minting new position")
 			pos = position.Make()
 			p.Positions[position_key] = pos
 		} else {
@@ -362,8 +318,6 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 		)
 	}
 
-	fmt.Println("UPDATEPOSITION - flippedLower: ", flippedLower)
-	fmt.Println("UPDATEPOSITION - flippedUpper: ", flippedUpper)
 	feeGrowthInside0X128, feeGrowthInside1X128 := p.Ticks.GetFeeGrowthInside(
 		tickLower,
 		tickUpper,
@@ -372,14 +326,7 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 		feeGrowthGlobal1X128,
 	)
 
-	fmt.Printf("UPDATEPOSITION - feeGrowthInside0X128: %+v", feeGrowthInside0X128)
-	fmt.Println()
-	fmt.Printf("UPDATEPOSITION - feeGrowthInside1X128: %+v", feeGrowthInside1X128)
-	fmt.Println()
-
 	pos.Update(liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128)
-	fmt.Printf("UPDATEPOSITION - Updated position: %+v", pos)
-	fmt.Println()
 
 	// Clear any tick data that is no longer needed
 	if liquidityDelta.Cmp(big.NewInt(0)) <= -1 {
@@ -391,8 +338,6 @@ func (p *Pool) updatePosition(owner string, tickLower, tickUpper, tick int, liqu
 		}
 	}
 
-	// fmt.Printf("updatePosition - POSITION: %+v", position)
-	// fmt.Println()
 	return pos
 }
 
@@ -527,10 +472,6 @@ func (p *Pool) Burn(owner string, tickLower, tickUpper int, amount *big.Int) (am
 			Mint:           false,
 		},
 	)
-	// fmt.Printf("amount0: %+v", amount0)
-	// fmt.Println()
-	// fmt.Printf("amount1: %+v", amount1)
-	// fmt.Println()
 	amount0 = new(big.Int).Neg(amount0)
 	amount1 = new(big.Int).Neg(amount1)
 
@@ -605,15 +546,6 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 
 	var cacheFeeProtocol int
 	var stateFeeGrowthGlobalX128 *big.Int
-	// fmt.Println("zeroForOne: ", zeroForOne)
-	// fmt.Printf("sqrtPriceLimitX96: %+v", sqrtPriceLimitX96)
-	// fmt.Println()
-	// fmt.Printf("slot0Start.SqrtPriceX96: %+v", slot0Start.SqrtPriceX96)
-	// fmt.Println()
-	// fmt.Printf("constants.MinSqrtRatioBig: %+v", constants.MinSqrtRatioBig)
-	// fmt.Println()
-	// fmt.Printf("constants.MaxSqrtRatio: %+v", constants.MaxSqrtRatio)
-	// fmt.Println()
 	if zeroForOne {
 		// sqrtPriceLimitX96 < slot0Start.sqrtPriceX96 && sqrtPriceLimitX96 > TickMath.MIN_SQRT_RATIO
 		// if !((sqrtPriceLimitX96.Cmp(slot0Start.SqrtPriceX96) <= -1) && (sqrtPriceLimitX96.Cmp(constants.MinSqrtRatioBig) >= 1)) {
@@ -775,11 +707,11 @@ func (p *Pool) Swap(sender, recipient string, zeroForOne bool, amountSpecified, 
 
 	// Update liquidity if it changed
 	if cache.LiquidityStart.Cmp(state.Liquidity) != 0 {
-		// fmt.Println("CHANGING LIQUIDITY")
-		// fmt.Println("BEFORE: ", p.Liquidity)
+		fmt.Println("CHANGING LIQUIDITY")
+		fmt.Println("BEFORE: ", p.Liquidity)
 		p.Liquidity = state.Liquidity
-		// fmt.Println("AFTER: ", p.Liquidity)
-		// fmt.Println()
+		fmt.Println("AFTER: ", p.Liquidity)
+		fmt.Println()
 	}
 
 	// Update fee growth global and, if necessary, protocol fees
