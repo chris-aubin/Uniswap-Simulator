@@ -68,80 +68,133 @@ func getGasAvs(gasAvsRaw []byte) *strategy.GasAvs {
 	return &gasAvs
 }
 
+func getStratInput(stratRaw []byte) *strategy.StrategyInput {
+	var stratInput strategy.StrategyInput
+
+	json.Unmarshal(stratRaw, &stratInput)
+
+	return &stratInput
+}
+
 func main() {
-	relPathToTransactions := flag.String("transactions", "../data/transactions.txt", "Path to file containing transactions for simulation")
-	relPathToPoolState := flag.String("pool", "../data/pool.txt", "Path to file containing pool state for simulation")
-	relPathToGas := flag.String("gas", "../data/gas.txt", "Path to file containing gas averages for simulation")
-	stratIdentifier := flag.String("strat", "v2", "Strategy identifier")
-	amount0String := flag.String("amount", "33", "Strategy amount0")               // 33*10^-6 BTC ~1 USD on 18/04/2023
-	amount1String := flag.String("amount1", "480000000000000", "Strategy amount1") // 480000000000000*10^-18 ETH ~1 USD on 18/04/2023
-	updateInterval := flag.Int("updateInterval", 1, "Update interval for simulation")
+	// Get command line arguments
+	relPathToData := flag.String("data", "../data/testNil1", "Path to file containing data for simulation")
 	flag.Parse()
 
-	amount0, _ := new(big.Int).SetString(*amount0String, 10)
-	amount1, _ := new(big.Int).SetString(*amount1String, 10)
+	// Relative paths to files containing data for simulation
+	relPathToTransactions := *relPathToData + "/transactions.txt"
+	relPathToPoolState := *relPathToData + "/poolBefore.txt"
+	relPathToGas := *relPathToData + "/gas.txt"
+	relPathToStrat := *relPathToData + "/strategy.txt"
 
-	absPathToTransactions, err := filepath.Abs(*relPathToTransactions)
+	// Relative paths to files containing results of simulation
+	relPathToResults := "../results"
+	relPathToStratBefore := relPathToResults + "/strategyBefore.txt"
+	relPathToStratAfter := relPathToResults + "/strategyAfter.txt"
+	relPathToPoolStateBefore := relPathToResults + "/poolBefore.txt"
+	relPathToPoolStateAfter := relPathToResults + "/poolAfter.txt"
+
+	// Get absolute paths to files containing data for simulation
+	absPathToTransactions, err := filepath.Abs(relPathToTransactions)
 	if err != nil {
 		message := fmt.Sprint("Failed to get absolute path to file containing transactions:", err)
 		panic(message)
 	}
 
-	absPathToPoolState, err := filepath.Abs(*relPathToPoolState)
+	absPathToPoolState, err := filepath.Abs(relPathToPoolState)
 	if err != nil {
 		message := fmt.Sprint("Failed to get absolute path to file containing pool state:", err)
 		panic(message)
 	}
 
-	absPathToGas, err := filepath.Abs(*relPathToGas)
+	absPathToGas, err := filepath.Abs(relPathToGas)
 	if err != nil {
 		message := fmt.Sprint("Failed to get absolute path to file containing gas averages:", err)
 		panic(message)
 	}
 
+	absPathToStrat, err := filepath.Abs(relPathToStrat)
+	if err != nil {
+		message := fmt.Sprint("Failed to get absolute path to file containing strategy information:", err)
+		panic(message)
+	}
+
+	// Get absolute paths to files containing results of simulation
+	absPathToStratBefore, _ := filepath.Abs(relPathToStratBefore)
+	absPathToStratAfter, _ := filepath.Abs(relPathToStratAfter)
+	absPathToPoolStateBefore, _ := filepath.Abs(relPathToPoolStateBefore)
+	absPathToPoolStateAfter, _ := filepath.Abs(relPathToPoolStateAfter)
+
+	// Read data for simulation from files
 	transactionsRaw, err := os.ReadFile(absPathToTransactions)
 	if err != nil {
-		message := fmt.Sprintf("Error reading transactions file at path (relative path, absolute path): %s, %s, %v", *relPathToTransactions, absPathToTransactions, err)
+		message := fmt.Sprintf("Error reading transactions file at path (relative path, absolute path): %s, %s, %v", relPathToTransactions, absPathToTransactions, err)
 		panic(message)
 	}
 
 	poolStateRaw, err := os.ReadFile(absPathToPoolState)
 	if err != nil {
-		message := fmt.Sprintf("Error reading pool state file at path (relative path, absolute path): %s, %s, %v", *relPathToPoolState, absPathToPoolState, err)
+		message := fmt.Sprintf("Error reading pool state file at path (relative path, absolute path): %s, %s, %v", relPathToPoolState, absPathToPoolState, err)
 		panic(message)
 	}
 
 	gasRaw, err := os.ReadFile(absPathToGas)
 	if err != nil {
-		message := fmt.Sprintf("Error reading gas averages file at path (relative path, absolute path): %s, %s, %v", *relPathToGas, absPathToGas, err)
+		message := fmt.Sprintf("Error reading gas averages file at path (relative path, absolute path): %s, %s, %v", relPathToGas, absPathToGas, err)
 		panic(message)
 	}
 
+	stratRaw, err := os.ReadFile(absPathToStrat)
+	if err != nil {
+		message := fmt.Sprintf("Error reading strategy file at path (relative path, absolute path): %s, %s, %v", relPathToStrat, absPathToStrat, err)
+		panic(message)
+	}
+	fmt.Println("stratRaw", string(stratRaw))
+
+	// Create simulation
 	t := getTransactions(transactionsRaw)
 	p := getPoolState(poolStateRaw)
 	g := getGasAvs(gasRaw)
+	stratInput := getStratInput(stratRaw)
 
-	strat := strategy.Make(amount0, amount1, p, g, *stratIdentifier, *updateInterval)
+	fmt.Println("stratInput:", stratInput)
+	fmt.Println("Amount0:", stratInput.Amount0)
+	fmt.Println("Amount1:", stratInput.Amount1)
+	fmt.Println("Strategy:", stratInput.Strategy)
+	fmt.Println("UpdateInterval:", stratInput.UpdateInterval)
+
+	strat := strategy.Make(stratInput.Amount0, stratInput.Amount1, p, g, stratInput.Strategy, stratInput.UpdateInterval)
 
 	s := simulation.Make(p, t, strat)
 
 	// Save pool state before simulation
 	poolJSON, _ := json.MarshalIndent(s.Pool, "", "    ")
-	f, _ := os.Create("poolBefore.txt")
+	f, _ := os.Create(absPathToPoolStateBefore)
 	f.Write(poolJSON)
+	f.Close()
+
+	// Save strategy before to simulation
+	stratJSON, _ := json.MarshalIndent(s.Strategy, "", "    ")
+	f, _ = os.Create(absPathToStratBefore)
+	f.Write(stratJSON)
 	f.Close()
 
 	s.Simulate()
 
 	// Save pool state after simulation
 	poolJSON, _ = json.MarshalIndent(s.Pool, "", "    ")
-	f, _ = os.Create("poolAfter.txt")
+	f, _ = os.Create(absPathToPoolStateAfter)
 	f.Write(poolJSON)
 	f.Close()
 
-	// Save strategy after to file
-	amount0, amount1, gasUsed := s.Strategy.Results(p)
-	fmt.Println(amount0)
-	fmt.Println(amount1)
-	fmt.Println(gasUsed)
+	// Save strategy after simulation
+	stratJSON, _ = json.MarshalIndent(s.Strategy, "", "    ")
+	f, _ = os.Create(absPathToStratAfter)
+	f.Write(stratJSON)
+	f.Close()
+
+	// amount0, amount1, gasUsed := s.Strategy.Results(p)
+	// fmt.Println(amount0)
+	// fmt.Println(amount1)
+	// fmt.Println(gasUsed)
 }

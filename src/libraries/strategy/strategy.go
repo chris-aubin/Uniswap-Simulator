@@ -11,8 +11,16 @@ var strategies map[string]func(p *pool.Pool, s *Strategy)
 
 func init() {
 	strategies = make(map[string]func(p *pool.Pool, s *Strategy))
+	strategies["nil"] = NilStrategyRebalance
 	strategies["v2"] = V2StrategyRebalance
 	strategies["v2Reinvesting"] = V2StrategyReinvestingRebalance
+}
+
+type StrategyInput struct {
+	Strategy       string   `json:"strategy"`
+	Amount0        *big.Int `json:"amount0"`
+	Amount1        *big.Int `json:"amount1"`
+	UpdateInterval int      `json:"updateInterval"`
 }
 
 // StrategyPosition represents a position held by a strategy.
