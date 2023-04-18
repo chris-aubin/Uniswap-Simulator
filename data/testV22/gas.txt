@@ -1,0 +1,14 @@
+{
+    "poolAddress": "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed",
+    "startDate": "01/03/2023",
+    "endDate": "01/04/2023",
+    "startBlock": 16731553,
+    "endBlock": 16951788,
+    "data": {
+        "mintAv": 369908.8014925373,
+        "burnAv": 247550.27666666667,
+        "swapAv": 217255.28231562252,
+        "flashAv": -1,
+        "collectAv": -1
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "strategy": "v2",
+    "amount0": 33,
+    "amount1": 480000000000000,
+    "updateInterval": 1
+}

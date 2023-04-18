@@ -1,0 +1,6 @@
+{
+    "strategy": "nil",
+    "amount0": 1,
+    "amount1": 1,
+    "updateInterval": 1
+}
