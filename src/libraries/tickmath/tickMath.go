@@ -25,7 +25,7 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 	// ratio := new(big.Float)
 	ratio := new(big.Int)
 	if absTick&0x1 != 0 {
-		// 0xfffcb933bd6fad37aa2d162d1a594001 == sqrt(1/1.0001)^1
+		// 0xfffcb933bd6fad37aa2d162d1a594001 == sqrt(1/1.0001)^1 == (1/1.0001)^0.5
 		// Can check by comparing
 		// int('0xfffcb933bd6fad37aa2d162d1a594001', 16)/2**128
 		// to
@@ -33,19 +33,19 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 
 		ratio.SetString("fffcb933bd6fad37aa2d162d1a594001", 16)
 	} else {
-		// 0x100000000000000000000000000000000 ==sqrt(1/1.0001)^0
+		// 0x100000000000000000000000000000000 == sqrt(1/1.0001)^0 == (1/1.0001)^0
 		ratio.SetString("100000000000000000000000000000000", 16)
 	}
 	if (absTick & 0x2) != 0 {
-		// 0xfff97272373d413259a46990580e213a == sqrt(1/1.0001)^2
+		// 0xfff97272373d413259a46990580e213a == sqrt(1/1.0001)^2 == (1/1.0001)^1
 		ratio = mulShift(ratio, "fff97272373d413259a46990580e213a")
 	}
 	if (absTick & 0x4) != 0 {
-		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^4
+		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^4 == (1/1.0001)^2
 		ratio = mulShift(ratio, "fff2e50f5f656932ef12357cf3c7fdcc")
 	}
 	if (absTick & 0x8) != 0 {
-		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^4
+		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^8 == (1/1.0001)^4
 		ratio = mulShift(ratio, "ffe5caca7e10e4e61c3624eaa0941cd0")
 	}
 	if (absTick & 0x10) != 0 {
