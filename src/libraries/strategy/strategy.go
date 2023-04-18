@@ -1,7 +1,6 @@
 package strategy
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
@@ -21,7 +20,7 @@ func init() {
 type StrategyPosition struct {
 	TickLower int
 	TickUpper int
-	Amount    *big.Int
+	Liquidity *big.Int
 }
 
 type GasAvs struct {
@@ -53,15 +52,10 @@ func (s *Strategy) Init(p *pool.Pool) {
 }
 
 func (s *Strategy) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
-	fmt.Println("HERE")
 	for _, stratPos := range s.Positions {
-		fmt.Println("IN LOOP")
-		p.Burn(s.Address, stratPos.TickLower, stratPos.TickUpper, stratPos.Amount)
+		p.Burn(s.Address, stratPos.TickLower, stratPos.TickUpper, stratPos.Liquidity)
 		s.GasUsed = new(big.Int).Add(s.GasUsed, s.GasAvs.BurnGas)
 		amount0, amount1 := p.Collect(s.Address, stratPos.TickLower, stratPos.TickUpper, constants.MaxUint256, constants.MaxUint256)
-		fmt.Println("BURN ALL")
-		fmt.Println("amount0", amount0)
-		fmt.Println("amount1", amount1)
 		s.GasUsed = new(big.Int).Add(s.GasUsed, s.GasAvs.CollectGas)
 		s.Amount0 = new(big.Int).Add(s.Amount0, amount0)
 		s.Amount1 = new(big.Int).Add(s.Amount1, amount1)
