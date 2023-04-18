@@ -55,10 +55,8 @@ type Strategy struct {
 	Rebalance      func(p *pool.Pool, s *Strategy)
 }
 
-func (s *Strategy) Init(p *pool.Pool) {
-	s.Rebalance(p, s)
-}
-
+// Burns all of the strategy's positions and calculates the tokens owed to the
+// strategy
 func (s *Strategy) BurnAll(p *pool.Pool) (amount0, amount1 *big.Int) {
 	for _, stratPos := range s.Positions {
 		p.Burn(s.Address, stratPos.TickLower, stratPos.TickUpper, stratPos.Liquidity)
