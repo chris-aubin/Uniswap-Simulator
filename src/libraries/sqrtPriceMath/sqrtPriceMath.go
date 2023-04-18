@@ -175,9 +175,7 @@ func GetAmount0Delta(
 	roundUp bool,
 ) (amount0 *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
-		temp := sqrtRatioAX96
-		sqrtRatioAX96 = sqrtRatioBX96
-		sqrtRatioBX96 = temp
+		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
 	}
 
 	numerator1 := new(big.Int).Lsh(liquidity, 96)
@@ -209,9 +207,7 @@ func GetAmount1Delta(
 	roundUp bool,
 ) (amount1 *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
-		temp := sqrtRatioAX96
-		sqrtRatioAX96 = sqrtRatioBX96
-		sqrtRatioBX96 = temp
+		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
 	}
 
 	if roundUp {
