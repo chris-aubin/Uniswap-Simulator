@@ -25,3 +25,5 @@ go.work
 src/poolBefore.txt
 src/poolAfter.txt
 src/logs.txt
+
+results/
