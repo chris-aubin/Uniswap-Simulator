@@ -7,6 +7,7 @@
 package position
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
@@ -35,6 +36,11 @@ type Position struct {
 // feeGrowthInside1X128 -- The all-time fee growth in token1, per unit of
 //                         liquidity, inside the position's tick boundaries
 func (p *Position) Update(liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) {
+	fmt.Println("Position.Update")
+	fmt.Printf("liquidityDelta: %v, feeGrowthGlobal0X128: %v, feeGrowthGlobal1X128: %v", liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128)
+	fmt.Println()
+	fmt.Printf("Position: %v", p)
+	fmt.Println()
 	liquidityNext := new(big.Int)
 	if liquidityDelta.Cmp(big.NewInt(0)) == 0 {
 		liquidityNext = p.Liquidity

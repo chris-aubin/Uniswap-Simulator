@@ -78,7 +78,7 @@ func getStratInput(stratRaw []byte) *strategy.StrategyInput {
 
 func main() {
 	// Get command line arguments
-	relPathToData := flag.String("data", "../data/testNil1", "Path to file containing data for simulation")
+	relPathToData := flag.String("data", "../data/testV21", "Path to file containing data for simulation")
 	flag.Parse()
 
 	// Relative paths to files containing data for simulation
@@ -149,19 +149,12 @@ func main() {
 		message := fmt.Sprintf("Error reading strategy file at path (relative path, absolute path): %s, %s, %v", relPathToStrat, absPathToStrat, err)
 		panic(message)
 	}
-	fmt.Println("stratRaw", string(stratRaw))
 
 	// Create simulation
 	t := getTransactions(transactionsRaw)
 	p := getPoolState(poolStateRaw)
 	g := getGasAvs(gasRaw)
 	stratInput := getStratInput(stratRaw)
-
-	fmt.Println("stratInput:", stratInput)
-	fmt.Println("Amount0:", stratInput.Amount0)
-	fmt.Println("Amount1:", stratInput.Amount1)
-	fmt.Println("Strategy:", stratInput.Strategy)
-	fmt.Println("UpdateInterval:", stratInput.UpdateInterval)
 
 	strat := strategy.Make(stratInput.Amount0, stratInput.Amount1, p, g, stratInput.Strategy, stratInput.UpdateInterval)
 
@@ -174,9 +167,12 @@ func main() {
 	f.Close()
 
 	// Save strategy before to simulation
-	stratJSON, _ := json.MarshalIndent(s.Strategy, "", "    ")
+	// stratJSON, _ := json.MarshalIndent(s.Strategy, "", "    ")
 	f, _ = os.Create(absPathToStratBefore)
-	f.Write(stratJSON)
+	// f.Write(stratJSON)
+	f.WriteString(fmt.Sprintf("amount0: %v\n", s.Strategy.Amount0))
+	f.WriteString(fmt.Sprintf("amount1: %v\n", s.Strategy.Amount1))
+	f.WriteString(fmt.Sprintf("gasUsed: %v\n", s.Strategy.GasUsed))
 	f.Close()
 
 	s.Simulate()
@@ -188,9 +184,15 @@ func main() {
 	f.Close()
 
 	// Save strategy after simulation
-	stratJSON, _ = json.MarshalIndent(s.Strategy, "", "    ")
+	// stratJSON, _ = json.MarshalIndent(s.Strategy, "", "    ")
 	f, _ = os.Create(absPathToStratAfter)
-	f.Write(stratJSON)
+	liquidity := s.Strategy.Positions[0].Liquidity
+	f.WriteString(fmt.Sprintf("liquidity: %v\n", liquidity))
+	amount0, amount1, gasUsed := s.Strategy.Results(p)
+	f.WriteString(fmt.Sprintf("amount0: %v\n", amount0))
+	f.WriteString(fmt.Sprintf("amount1: %v\n", amount1))
+	f.WriteString(fmt.Sprintf("gasUsed: %v\n", gasUsed))
+	// f.Write(stratJSON)
 	f.Close()
 
 	// amount0, amount1, gasUsed := s.Strategy.Results(p)

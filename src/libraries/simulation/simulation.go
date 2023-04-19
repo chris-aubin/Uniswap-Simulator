@@ -26,10 +26,8 @@ func (s *Simulation) Simulate() {
 	prevBlock := startBlock
 	for _, t := range s.Transactions {
 		if (t.BlockNo-startBlock)%s.Strategy.UpdateInterval == 0 {
-			// Call rebalance function
 			s.Strategy.Rebalance(s.Pool, s.Strategy)
 		} else if t.BlockNo-prevBlock >= s.Strategy.UpdateInterval {
-			// Call rebalance function
 			s.Strategy.Rebalance(s.Pool, s.Strategy)
 		}
 

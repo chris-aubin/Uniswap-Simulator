@@ -33,6 +33,9 @@ type Transaction struct {
 func Execute(t Transaction, p *pool.Pool) {
 	fmt.Println()
 	fmt.Println()
+	fmt.Println("Pool liquidity: ", p.Liquidity)
+	fmt.Println("Pool current tick: ", p.Slot0.Tick)
+	fmt.Println("Pool current sqrt price: ", p.Slot0.SqrtPriceX96)
 	fmt.Printf("Transaction: %+v", t)
 	fmt.Println()
 	switch t.Method {
