@@ -1,3 +1,7 @@
+// Package sqrtPriceMath simulates the Uniswap sqrtPriceMath library.
+//
+// It contains the methods that implement the maths that uses the square root of
+// prices as Q64.96 fixed point numbers and liquidity to compute deltas.
 package sqrtPriceMath
 
 import (
@@ -8,22 +12,23 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/unsafeMath"
 )
 
-// Gets the next sqrt price given a delta of token0
-// Always rounds up, because in the exact output case (increasing price) we need
-// to move the price at least far enough to get the desired output amount, and
-// in the exact input case (decreasing price) we need to move the price less in
-// order to not send too much output.
-
-// The most precise formula for this is:
+// Calculates the next sqrt price given a delta of token0. Always rounds up,
+// because in the exact output case (increasing price) we need to move the price
+// at least far enough to get the desired output amount, and in the exact input
+// case (decreasing price) we need to move the price less in order to not send
+// too much output. The most precise formula for this is:
 //         liquidity * sqrtPX96 / (liquidity +- amount * sqrtPX96),
 // If this is impossible because of overflow, Uniswap calculates:
 //         liquidity / (liquidity / sqrtPX96 +- amount).
-
-// sqrtPX96 is the starting price, i.e. before accounting for the token0 delta
-// liquidity si the amount of usable liquidity
-// amount is how much of token0 to add or remove from virtual reserves
-// add is whether to add or remove the amount of token0
-// Returns the price after adding or removing amount, depending on add
+//
+// Arguments:
+// sqrtPX96  -- The starting price, i.e. before accounting for the token0 delta
+// liquidity -- The amount of usable liquidity
+// amount    -- How much of token0 to add or remove from virtual reserves
+// add       -- Whether to add or remove the amount of token0
+//
+// Returns:
+// Price after adding or removing amount, depending on add
 func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int, add bool) *big.Int {
 	// We short circuit amount == 0 because the result is otherwise not
 	// guaranteed to equal the input price
@@ -67,20 +72,23 @@ func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *big.Int,
 	}
 }
 
-// Gets the next sqrt price given a delta of token1
-// Always rounds down, because in the exact output case (decreasing price) we
-// need to move the price at least far enough to get the desired output amount,
-// and in the exact input case (increasing price) we need to move the price less
-// in order to not send too much output. The formula we compute is within <1 wei
-// of the lossless version: sqrtPX96 +- amount / liquidity
-// sqrtPX96 is the starting price, i.e., before accounting for the token1 delta
-// liquidity is the amount of usable liquidity
-// amount is how much of token1 to add, or remove, from virtual reserves
-// add is a bool that indicates whether to add, or remove, the amount of token1
-// Returns the price after adding or removing `amount`
+// Calculates the next sqrt price given a delta of token1. Always rounds down,
+// because in the exact output case (decreasing price) we need to move the price
+// at least far enough to get the desired output amount, and in the exact input
+// case (increasing price) we need to move the price less in order to not send
+// too much output.
+//
+// Arguments:
+// sqrtPX96  -- The starting price, i.e., before accounting for the token1 delta
+// liquidity -- The amount of usable liquidity
+// amount    -- How much of token1 to add, or remove, from virtual reserves
+// add       -- Whether to add or remove the amount of token0
+//
+// Returns:
+// Price after adding or removing amount, depending on add
 func GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amount *big.Int, add bool) *big.Int {
-	// if we're adding (subtracting), rounding down requires rounding the quotient down (up)
-	// in both cases, avoid a mulDiv for most inputs
+	// If we're adding (subtracting), rounding down requires rounding the
+	// quotient down (up). In both cases, avoid a mulDiv for most inputs.
 	if add {
 		quotient := new(big.Int)
 		if amount.Cmp(constants.MaxUint160) <= 0 {
@@ -110,19 +118,18 @@ func GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amount *big.In
 	}
 }
 
-// Gets the next sqrt price given an input amount of token0 or token1
-// Panics if price or liquidity are 0, or if the next price is out of bounds
-// sqrtPX96 is the starting price, i.e., before accounting for the input amount
-// liquidity is the amount of usable liquidity
-// amountIn is how much of token0, or token1, is being swapped in
-// zeroForOne is a bool that indicates whether the amount in is token0 or token1
-// Returns the price after adding the input amount to token0 or token1
-func GetNextSqrtPriceFromInput(
-	sqrtPX96,
-	liquidity,
-	amountIn *big.Int,
-	zeroForOne bool,
-) (sqrtQX96 *big.Int) {
+// Calculates the next sqrt price given an input amount of token0 or token1.
+// Panics if price or liquidity are 0, or if the next price is out of bounds.
+//
+// Arguments:
+// sqrtPX96   -- The starting price, i.e., before accounting for the input amount
+// liquidity  -- The amount of usable liquidity
+// amountIn   -- How much of token0, or token1, is being swapped in
+// zeroForOne -- Whether the amount in is token0 or token1
+//
+// Returns:
+// Price after adding the input amount to token0 or token1
+func GetNextSqrtPriceFromInput(sqrtPX96, liquidity, amountIn *big.Int, zeroForOne bool) (sqrtQX96 *big.Int) {
 	if (sqrtPX96.Cmp(big.NewInt(0)) <= 0) || (liquidity.Cmp(big.NewInt(0)) <= 0) {
 		panic("SQRTPRICE: Invalid input")
 	}
@@ -135,24 +142,23 @@ func GetNextSqrtPriceFromInput(
 	}
 }
 
-// Gets the next sqrt price given an output amount of token0 or token1
-// Panics if price or liquidity are 0 or the next price is out of bounds
-// sqrtPX96 is the starting price before accounting for the output amount
-// liquidity is the amount of usable liquidity
-// amountOut is how much of token0, or token1, is being swapped out
-// zeroForOne is a bool that indicates whether the amount out is token0 or token1
-// Returns the price after removing the output amount of token0 or token1
-func GetNextSqrtPriceFromOutput(
-	sqrtPX96,
-	liquidity,
-	amountOut *big.Int,
-	zeroForOne bool,
-) (sqrtQX96 *big.Int) {
+// Calculates the next sqrt price given an output amount of token0 or token1.
+// Panics if price or liquidity are 0 or the next price is out of bounds.
+//
+// Arguments:
+// sqrtPX96   -- The starting price, i.e., before accounting for the input amount
+// liquidity  -- The amount of usable liquidity
+// amountOut  -- How much of token0, or token1, is being swapped out
+// zeroForOne -- Whether the amount in is token0 or token1
+//
+// Returns:
+// Price after adding the input amount to token0 or token1
+func GetNextSqrtPriceFromOutput(sqrtPX96, liquidity, amountOut *big.Int, zeroForOne bool) (sqrtQX96 *big.Int) {
 	if (sqrtPX96.Cmp(big.NewInt(0)) <= 0) || (liquidity.Cmp(big.NewInt(0)) <= 0) {
 		panic("SQRTPRICE: Invalid input")
 	}
 
-	// Round to make sure that we pass the target price
+	// Round to make sure that we pass the target price.
 	if zeroForOne {
 		return GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amountOut, false)
 	} else {
@@ -160,20 +166,20 @@ func GetNextSqrtPriceFromOutput(
 	}
 }
 
-// Gets the amount0 delta between two prices and calculates:
+// Calculates the amount0 delta between two prices. This is done by calculating:
 //         liquidity / sqrt(lower) - liquidity / sqrt(upper)
-// i.e. liquidity * (sqrt(upper) - sqrt(lower)) / (sqrt(upper) * sqrt(lower))
-// sqrtRatioAX96 is a sqrt price
-// sqrtRatioBX96 is another sqrt price
-// liquidity is the amount of usable liquidity
-// roundUp is a bool that indicates whether to round the amount up or down
-// Returns amount0 Amount of token0 required to cover a position of size liquidity between the two passed prices
-func GetAmount0Delta(
-	sqrtRatioAX96,
-	sqrtRatioBX96,
-	liquidity *big.Int,
-	roundUp bool,
-) (amount0 *big.Int) {
+// i.e.    liquidity * (sqrt(upper) - sqrt(lower)) / (sqrt(upper) * sqrt(lower))
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price
+// sqrtRatioBX96 -- Another sqrt price
+// liquidity     -- The amount of usable liquidity
+// roundUp       -- Whether to round the amount up or down
+//
+// Returns:
+// amount0       -- The amount of token0 required to cover a position of size
+//                  liquidity between the two passed prices
+func GetAmount0Delta(sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int, roundUp bool) (amount0 *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
 	}
@@ -192,20 +198,19 @@ func GetAmount0Delta(
 	}
 }
 
-// Gets the amount1 delta between two prices. Calculates:
+// Calculates the amount1 delta between two prices. This is done by calculating:
 //         liquidity * (sqrt(upper) - sqrt(lower))
-// sqrtRatioAX96 is a sqrt price
-// sqrtRatioBX96 is another sqrt price
-// liquidity is the amount of usable liquidity
-// roundUp is whether to round the amount up, or down
-// Returns amount1, the amount of token1 required to cover a position of size
-// liquidity between the two passed prices
-func GetAmount1Delta(
-	sqrtRatioAX96,
-	sqrtRatioBX96,
-	liquidity *big.Int,
-	roundUp bool,
-) (amount1 *big.Int) {
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price
+// sqrtRatioBX96 -- Another sqrt price
+// liquidity     -- The amount of usable liquidity
+// roundUp       -- Whether to round the amount up or down
+//
+// Returns:
+// amount0       -- The amount of token1 required to cover a position of size
+//                  liquidity between the two passed prices
+func GetAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int, roundUp bool) (amount1 *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
 	}
@@ -217,12 +222,17 @@ func GetAmount1Delta(
 	}
 }
 
-// Helper that gets signed token0 delta
-// sqrtRatioAX96 is a sqrt price
-// sqrtRatioBX96 is another sqrt price
-// liquidity is the change in liquidity for which to compute the amount0 delta
-// Returns amount0, the amount of token0 corresponding to the passed
-// liquidityDelta between the two prices.
+// Helper that determines whether to call GetAmount0Delta with roundUp = true or
+// false.
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price
+// sqrtRatioBX96 -- Another sqrt price
+// liquidity     -- The amount of usable liquidity
+//
+// Returns:
+// amount0       -- The amount of token0 required to cover a position of size
+//                  liquidity between the two passed prices
 func GetAmount0DeltaNoBool(
 	sqrtRatioAX96,
 	sqrtRatioBX96,
@@ -235,12 +245,17 @@ func GetAmount0DeltaNoBool(
 	}
 }
 
-// Helper that gets signed token1 delta
-// sqrtRatioAX96 is a sqrt price
-// sqrtRatioBX96 is another sqrt price
-// liquidity is the change in liquidity for which to compute the amount1 delta
-// Returns amount0, the amount of token1 corresponding to the passed
-// liquidityDelta between the two prices.
+// Helper that determines whether to call GetAmount1Delta with roundUp = true or
+// false.
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price
+// sqrtRatioBX96 -- Another sqrt price
+// liquidity     -- The amount of usable liquidity
+//
+// Returns:
+// amount0       -- The amount of token1 required to cover a position of size
+//                  liquidity between the two passed prices
 func GetAmount1DeltaNoBool(
 	sqrtRatioAX96,
 	sqrtRatioBX96,

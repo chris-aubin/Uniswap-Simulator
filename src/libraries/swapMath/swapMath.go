@@ -1,3 +1,7 @@
+// Package swapMath simulates the Uniswap swapMath library.
+//
+// Contains methods for computing the result of a swap within a single tick
+// price range, i.e., a single tick.
 package swapMath
 
 import (
@@ -7,24 +11,27 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/sqrtPriceMath"
 )
 
-// Computes the result of swapping some amount in, or amount out, given the
-// parameters of the swap
-// The fee, plus the amount in, will never exceed the amount remaining if the
-// swap's `amountSpecified` is positive
-// sqrtRatioCurrentX96 is the current sqrt price of the pool
-// sqrtRatioTargetX96 is the price that cannot be exceeded, from which the
-// direction of the swap is inferred
-// liquidity is the usable liquidity
-// amountRemaining is how much input or output amount is remaining to be swapped
-// in/out
-// feePips is the fee taken from the input amount, expressed in hundredths of a bip
-// Returns sqrtRatioNextX96, the price after swapping the amount in/out, not to
-// exceed the price target
-// Returns amountIn, the amount to be swapped in, of either token0 or token1,
-// based on the direction of the swap
-// Returns amountOut, the amount to be received, of either token0 or token1,
-// based on the direction of the swap
-// Returns feeAmount, the amount of input that will be taken as a fee
+// Calculates the result of swapping some amount in, or amount out, given the
+// parameters of the swap. The fee, plus the amount in, will never exceed the
+// amount remaining if the swap's amountSpecified is positive.
+//
+// Arguments:
+// sqrtRatioCurrentX96 -- The current sqrt price of the pool
+// sqrtRatioTargetX96  -- The price that cannot be exceeded, from which the
+// 						  direction of the swap is inferred
+// liquidity           -- The usable liquidity
+// amountRemaining     -- How much input or output amount is remaining to be
+// 					      swapped in/out
+// feePips             -- The fee taken from the input amount, expressed in
+//                        hundredths of a bip
+// Returns:
+// sqrtRatioNextX96    -- The price after swapping the amount in/out, not to
+//                        exceed the price target
+// amountIn            -- The amount to be swapped in, of either token0 or
+//                        token1, based on the direction of the swap
+// amountOut           -- The amount to be received, of either token0 or token1,
+//                        based on the direction of the swap
+// feeAmount           -- The amount of input that will be taken as a fee
 func ComputeSwapStep(sqrtRatioCurrentX96, sqrtRatioTargetX96, liquidity, amountRemaining *big.Int, feePips int) (sqrtRatioNextX96, amountIn, amountOut, feeAmount *big.Int) {
 	var zeroForOne bool
 	if sqrtRatioCurrentX96.Cmp(sqrtRatioTargetX96) >= 0 {
@@ -32,7 +39,6 @@ func ComputeSwapStep(sqrtRatioCurrentX96, sqrtRatioTargetX96, liquidity, amountR
 	} else {
 		zeroForOne = false
 	}
-	// bool exactIn = amountRemaining >= 0;
 	var exactIn bool
 	if amountRemaining.Cmp(big.NewInt(0)) >= 0 {
 		exactIn = true
@@ -47,7 +53,6 @@ func ComputeSwapStep(sqrtRatioCurrentX96, sqrtRatioTargetX96, liquidity, amountR
 		} else {
 			amountIn = sqrtPriceMath.GetAmount1Delta(sqrtRatioCurrentX96, sqrtRatioTargetX96, liquidity, true)
 		}
-		// if (amountRemainingLessFee >= amountIn) sqrtRatioNextX96 = sqrtRatioTargetX96;
 		if amountRemainingLessFee.Cmp(amountIn) >= 0 {
 			sqrtRatioNextX96 = sqrtRatioTargetX96
 		} else {

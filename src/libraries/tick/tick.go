@@ -1,3 +1,6 @@
+// Package tick simulates the Uniswap tick library.
+//
+// Contains functions for managing tick processes and relevant calculations.
 package tick
 
 import (
@@ -8,12 +11,12 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/liquidityMath"
 )
 
-// Info stored for each initialized tick
+// State stored for each initialized tick.
 type Tick struct {
 	// The total position liquidity that references this tick.
 	LiquidityGross *big.Int
 	// Amount of net liquidity added when tick is crossed from left to right (or
-	// subtracted when the tick is crossed from right to left),
+	// subtracted when the tick is crossed from right to left).
 	LiquidityNet *big.Int
 	// Fee growth per unit of liquidity on the _other_ side of this tick
 	// (relative to the current tick). Only has relative meaning, not absolute —
@@ -22,18 +25,18 @@ type Tick struct {
 	FeeGrowthOutside1X128 *big.Int
 	// True iff the tick is initialized, i.e. the value is exactly equivalent to
 	// the expression liquidityGross != 0. These 8 bits are set to prevent fresh
-	//  stores when crossing newly initialized ticks
+	// stores when crossing newly initialized ticks.
 	Initialized bool
 }
 
-// Contains all all tick information for initialized ticks
+// Contains all all tick information for a set of initialized ticks.
 type Ticks struct {
-	// Maps tick index to tick data
+	// Maps tick index to tick data.
 	TickData map[int]*Tick
 }
 
 // Takes in a map from string to Tick and returns a Ticks struct (i.e. a map
-// from int to Tick)
+// from int to Tick). Used when loading tick data from JSON.
 func TicksTempToTicks(ticks *map[string]Tick) *Ticks {
 	tickData := make(map[int]*Tick)
 	for k, v := range *ticks {
@@ -52,10 +55,13 @@ func TicksTempToTicks(ticks *map[string]Tick) *Ticks {
 	}
 }
 
-// Derives max liquidity per tick from given tick spacing
-// Accepts tickSpacing, the amount of required tick separation. A tickSpacing of 3
-// requires ticks to be initialized every 3rd tick i.e., ..., -6, -3, 0, 3, 6, ...
-// Returns the max liquidity per tick
+// Calculates max liquidity per tick from given tick spacing.
+//
+// Arguments:
+// tickSpacing -- The amount of required tick separation
+//
+// Returns:
+// The max liquidity per tick
 func tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 	minTick := (constants.MinTick / tickSpacing) * tickSpacing
 	maxTick := (constants.MaxTick / tickSpacing) * tickSpacing
@@ -64,8 +70,15 @@ func tickSpacingToMaxLiquidityPerTick(tickSpacing int) *big.Int {
 	return result
 }
 
-// Solidity automatically initializes all values in maps, need to simulate that
-// behavior here.
+// Solidity automatically initializes all values in maps, so this simulates that
+// behavior (in the case that a tick doesn't exist at a particular index this
+// function initialises a new tick, associates it with that index and returns it).
+//
+// Arguments:
+// tick -- The tick index
+//
+// Returns:
+// The tick data at the given index
 func (t *Ticks) Get(tick int) *Tick {
 	tickInfo, found := t.TickData[tick]
 	if found {
@@ -82,14 +95,22 @@ func (t *Ticks) Get(tick int) *Tick {
 	}
 }
 
-/// Retrieves fee growth data
-/// Accepts tickLower, the lower tick boundary of the position
-/// Accepts tickUpper, the upper tick boundary of the position
-/// Accepts tickCurrent, the current tick
-/// Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
-/// Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
-/// Returns feeGrowthInside0X128, the all-time fee growth in token0, per unit of liquidity, inside the position's tick boundaries
-/// Returns feeGrowthInside1X128, the all-time fee growth in token1, per unit of liquidity, inside the position's tick boundaries
+// Retrieves fee growth data.
+//
+// Arguments:
+// tickLower            -- The lower tick boundary of the position
+// tickUpper            -- The upper tick boundary of the position
+// tickCurrent          -- The current tick
+// feeGrowthGlobal0X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token0
+// feeGrowthGlobal1X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token1
+//
+// Returns:
+// feeGrowthInside0X128 -- The all-time fee growth in token0, per unit of
+//                         liquidity, inside the position's tick boundaries
+// feeGrowthInside1X128 -- The all-time fee growth in token1, per unit of
+//                         liquidity, inside the position's tick boundaries
 func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) (*big.Int, *big.Int) {
 	lower := t.Get(tickLower)
 	upper := t.Get(tickUpper)
@@ -131,15 +152,24 @@ func (t *Ticks) GetFeeGrowthInside(tickLower, tickUpper, tickCurrent int, feeGro
 	return feeGrowthInside0X128, feeGrowthInside1X128
 }
 
-// Updates a tick and returns true if the tick was flipped from initialized to uninitialized, or vice versa
-// Accepts tick, the index of the tick that will be updated
-// Accepts tickCurrent, the index of the current tick
-// Accepts liquidityDelta, the (new) amount of liquidity to be added (subtracted) when tick is crossed from left to right (right to left)
-// Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
-// Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
-// Accepts upper, a boolean that is true for updating a position's upper tick, or false for updating a position's lower tick
-// Accepts maxLiquidity, the maximum liquidity allocation for a single tick
-// Returns flipped, a boolean that indicates whether the tick was flipped from initialized to uninitialized, or vice versa
+// Updates a tick and returns true if the tick was flipped from initialized to
+// uninitialized, or vice versa.
+//
+// Arguments:
+// tick                 -- The index of the tick that will be updated
+// tickCurrent          -- The index of the current tick
+// liquidityDelta       -- The (new) amount of liquidity to be added (subtracted)
+//                         when tick is crossed from left to right (right to left)
+// feeGrowthGlobal0X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token0
+// feeGrowthGlobal1X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token1
+// upper                -- A boolean that is true for updating a position's upper
+//                         tick, or false for updating a position's lower tick
+// maxLiquidity         -- The maximum liquidity allocation for a single tick
+//
+// Returns:
+// flipped              -- A boolean that indicates whether the tick was flipped
 func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1X128, maxLiquidity *big.Int, upper bool) bool {
 	info := t.Get(tick)
 	liquidityGrossBefore := info.LiquidityGross
@@ -175,16 +205,25 @@ func (t *Ticks) Update(tick, tickCurrent int, liquidityDelta, feeGrowthGlobal0X1
 }
 
 // Clears data for a particular tick
-// Accepts tick, the tick index of the tick that will be cleared
+//
+// Arguments:
+// tick -- The tick index of the tick that will be cleared
 func (t *Ticks) Clear(tick int) {
 	delete(t.TickData, tick)
 }
 
-// Transitions to next tick as needed by price movement
-// Accepts tick, the destination tick of the transition
-// Accepts feeGrowthGlobal0X128, the all-time global fee growth, per unit of liquidity, in token0
-// Accepts feeGrowthGlobal1X128, the all-time global fee growth, per unit of liquidity, in token1
-// Returns liquidityNet, the amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
+// Transitions to next tick as needed by price movement.
+//
+// Arguments:
+// tick                 -- The destination tick of the transition
+// feeGrowthGlobal0X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token0
+// feeGrowthGlobal1X128 -- The all-time global fee growth, per unit of liquidity,
+//                         in token1
+// Returns:
+// liquidityNet         -- The amount of liquidity added (subtracted) when tick
+//                         is crossed from left to right (right to left)
+
 func (t *Ticks) Cross(tick int, feeGrowthGlobal0X128, feeGrowthGlobal1X128 *big.Int) *big.Int {
 	info := t.Get(tick)
 	info.FeeGrowthOutside0X128 = new(big.Int).Sub(feeGrowthGlobal0X128, info.FeeGrowthOutside0X128)

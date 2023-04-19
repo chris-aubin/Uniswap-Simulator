@@ -1,3 +1,8 @@
+// Package liquidityAmounts simulates the Uniswap (periphery) liquidityAmounts library.
+//
+// In production Uniswap uses the liquidityAmounts library to give users a way
+// to compute liquidity amounts from token amounts and prices (it is not part
+// of the core Uniswap contracts).
 package liquidityAmounts
 
 import (
@@ -7,12 +12,17 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/fullMath"
 )
 
-/// @notice Computes the amount of liquidity received for a given amount of token0 and price range
-/// @dev Calculates amount0 * (sqrt(upper) * sqrt(lower)) / (sqrt(upper) - sqrt(lower))
-/// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
-/// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
-/// @param amount0 The amount0 being sent in
-/// @return liquidity The amount of returned liquidity
+// Calculates the amount of liquidity received for a given amount of token0 and
+// price range. This is done by calculating:
+//     amount0 * (sqrt(upper) * sqrt(lower)) / (sqrt(upper) - sqrt(lower))
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price representing the first tick boundary
+// sqrtRatioBX96 -- A sqrt price representing the second tick boundary
+// amount0       -- The amount0 being sent in
+//
+// Returns:
+// liquidity     -- The amount of returned liquidity
 func getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amount0 *big.Int) *big.Int {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
@@ -21,12 +31,17 @@ func getLiquidityForAmount0(sqrtRatioAX96, sqrtRatioBX96, amount0 *big.Int) *big
 	return fullMath.MulDiv(amount0, intermediate, new(big.Int).Sub(sqrtRatioBX96, sqrtRatioAX96))
 }
 
-/// @notice Computes the amount of liquidity received for a given amount of token1 and price range
-/// @dev Calculates amount1 / (sqrt(upper) - sqrt(lower)).
-/// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
-/// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
-/// @param amount1 The amount1 being sent in
-/// @return liquidity The amount of returned liquidity
+// Calculates the amount of liquidity received for a given amount of token1 and
+// price range. This is done by calculating:
+//     amount1 / (sqrt(upper) - sqrt(lower)).
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price representing the first tick boundary
+// sqrtRatioBX96 -- A sqrt price representing the second tick boundary
+// amount1       -- The amount1 being sent in
+//
+// Returns:
+// liquidity     -- The amount of returned liquidity
 func getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioBX96, amount1 *big.Int) *big.Int {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
@@ -34,14 +49,18 @@ func getLiquidityForAmount1(sqrtRatioAX96, sqrtRatioBX96, amount1 *big.Int) *big
 	return fullMath.MulDiv(amount1, constants.Q96, new(big.Int).Sub(sqrtRatioBX96, sqrtRatioAX96))
 }
 
-/// @notice Computes the maximum amount of liquidity received for a given amount of token0, token1, the current
-/// pool prices and the prices at the tick boundaries
-/// @param sqrtRatioX96 A sqrt price representing the current pool prices
-/// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
-/// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
-/// @param amount0 The amount of token0 being sent in
-/// @param amount1 The amount of token1 being sent in
-/// @return liquidity The maximum amount of liquidity received
+// Calculates the maximum amount of liquidity received for a given amount of
+// token0, token1, the current pool prices and the prices at the tick boundaries.
+//
+// Arguments:
+// sqrtRatioX96  -- A sqrt price representing the current pool prices
+// sqrtRatioAX96 -- A sqrt price representing the first tick boundary
+// sqrtRatioBX96 -- A sqrt price representing the second tick boundary
+// amount0       -- The amount of token0 being sent in
+// amount1       -- The amount of token1 being sent in
+//
+// Returns:
+// liquidity     -- The maximum amount of liquidity received
 func GetLiquidityForAmounts(sqrtRatioX96, sqrtRatioAX96, sqrtRatioBX96, amount0, amount1 *big.Int) (liquidity *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
@@ -76,11 +95,16 @@ func getAmount0ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int) *b
 	return new(big.Int).Div(temp, sqrtRatioAX96)
 }
 
-/// @notice Computes the amount of token1 for a given amount of liquidity and a price range
-/// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
-/// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
-/// @param liquidity The liquidity being valued
-/// @return amount1 The amount of token1
+// Calculates the amount of token1 for a given amount of liquidity and a price
+// range.
+//
+// Arguments:
+// sqrtRatioAX96 -- A sqrt price representing the first tick boundary
+// sqrtRatioBX96 -- A sqrt price representing the second tick boundary
+// liquidity     -- The liquidity being valued
+//
+// Returns:
+// amount1       -- The amount of token1
 func getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int) *big.Int {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96
@@ -89,14 +113,18 @@ func getAmount1ForLiquidity(sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int) *b
 	return fullMath.MulDiv(liquidity, new(big.Int).Sub(sqrtRatioBX96, sqrtRatioAX96), constants.Q96)
 }
 
-/// @notice Computes the token0 and token1 value for a given amount of liquidity, the current
-/// pool prices and the prices at the tick boundaries
-/// @param sqrtRatioX96 A sqrt price representing the current pool prices
-/// @param sqrtRatioAX96 A sqrt price representing the first tick boundary
-/// @param sqrtRatioBX96 A sqrt price representing the second tick boundary
-/// @param liquidity The liquidity being valued
-/// @return amount0 The amount of token0
-/// @return amount1 The amount of token1
+// Calculates the amount of token0 and token1 for a given amount of liquidity
+// and a price range.
+//
+// Arguments:
+// sqrtRatioX96  -- A sqrt price representing the current pool prices
+// sqrtRatioAX96 -- A sqrt price representing the first tick boundary
+// sqrtRatioBX96 -- A sqrt price representing the second tick boundary
+// liquidity     -- The liquidity being valued
+//
+// Returns:
+// amount0       -- The amount of token0
+// amount1       -- The amount of token1
 func GetAmountsForLiquidity(sqrtRatioX96, sqrtRatioAX96, sqrtRatioBX96, liquidity *big.Int) (*big.Int, *big.Int) {
 	if sqrtRatioAX96.Cmp(sqrtRatioBX96) >= 1 {
 		sqrtRatioAX96, sqrtRatioBX96 = sqrtRatioBX96, sqrtRatioAX96

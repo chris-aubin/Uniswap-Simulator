@@ -1,3 +1,5 @@
+// The transaction package contains the Transaction struct and the function to
+// execute a transaction on a pool.
 package transaction
 
 import (
@@ -8,6 +10,9 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/pool"
 )
 
+// Transaction represents a single transaction that is executed on a pool. It
+// contains the fields necessary for mints, burns, swaps and flashes. Any fields
+// that are not relevant to the transaction type are set to nil.
 type Transaction struct {
 	BlockNo      int      `json:"blockNo"`
 	Timestamp    int      `json:"timestamp"`
@@ -30,6 +35,7 @@ type Transaction struct {
 	Paid1        *big.Int `json:"paid1"`
 }
 
+// Execute executes the transaction on the provided pool.
 func Execute(t Transaction, p *pool.Pool) {
 	fmt.Println()
 	fmt.Println()

@@ -1,3 +1,4 @@
+// Package utilities contains the method to encode a price as a Q96 number.
 package utilities
 
 import (
@@ -6,6 +7,8 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 )
 
+// EncodePriceSqrt encodes a price as a Q96 number given the reserves of the
+// token pair.
 func EncodePriceSqrt(reserve1, reserve0 *big.Int) *big.Int {
 	r1 := new(big.Float).SetInt(reserve1)
 	r0 := new(big.Float).SetInt(reserve0)

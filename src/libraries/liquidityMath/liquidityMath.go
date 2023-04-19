@@ -11,7 +11,7 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/constants"
 )
 
-// Adds a signed liquidity delta to liquidity and reverts if it overflows or
+// Adds a signed liquidity delta to liquidity. Panics if it overflows or
 // underflows.
 func AddDelta(x, y *big.Int) (delta *big.Int) {
 	// Ensure that x > 0.

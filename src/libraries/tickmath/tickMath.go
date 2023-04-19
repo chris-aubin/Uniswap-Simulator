@@ -1,3 +1,8 @@
+// Package tickMath simulates the Uniswap TickMath library.
+// 	
+// 	Contains methods to compute the sqrt price for ticks of size 1.0001, 
+// i.e. sqrt(1.0001^tick) as fixed point Q64.96 numbers and the tick for a given
+// sqrt price.
 package tickMath
 
 import (
@@ -7,7 +12,13 @@ import (
 )
 
 // Computes  the sqrt price for ticks of size 1.0001, i.e. sqrt(1.0001^tick)
-// Supports prices between 2**-128 and 2**128
+// Supports prices between 2**-128 and 2**128.
+// 
+// Arguments:
+// tick -- The tick for which to compute the sqrt price
+//
+// Returns:
+// The sqrt price as a fixed point Q64.96 number
 func GetSqrtRatioAtTick(tick int) *big.Int {
 	absTick := tick
 	if tick < 0 {
@@ -25,7 +36,7 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 	// ratio := new(big.Float)
 	ratio := new(big.Int)
 	if absTick&0x1 != 0 {
-		// 0xfffcb933bd6fad37aa2d162d1a594001 == sqrt(1/1.0001)^1 == (1/1.0001)^0.5
+		// 0xfffcb933bd6fad37aa2d162d1a594001 == sqrt(1/1.0001)^1
 		// Can check by comparing
 		// int('0xfffcb933bd6fad37aa2d162d1a594001', 16)/2**128
 		// to
@@ -33,19 +44,19 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 
 		ratio.SetString("fffcb933bd6fad37aa2d162d1a594001", 16)
 	} else {
-		// 0x100000000000000000000000000000000 == sqrt(1/1.0001)^0 == (1/1.0001)^0
+		// 0x100000000000000000000000000000000 == sqrt(1/1.0001)^0
 		ratio.SetString("100000000000000000000000000000000", 16)
 	}
 	if (absTick & 0x2) != 0 {
-		// 0xfff97272373d413259a46990580e213a == sqrt(1/1.0001)^2 == (1/1.0001)^1
+		// 0xfff97272373d413259a46990580e213a == sqrt(1/1.0001)^2
 		ratio = mulShift(ratio, "fff97272373d413259a46990580e213a")
 	}
 	if (absTick & 0x4) != 0 {
-		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^4 == (1/1.0001)^2
+		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^4
 		ratio = mulShift(ratio, "fff2e50f5f656932ef12357cf3c7fdcc")
 	}
 	if (absTick & 0x8) != 0 {
-		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^8 == (1/1.0001)^4
+		// 0xfff2e50f5f656932ef12357cf3c7fdcc == sqrt(1/1.0001)^8
 		ratio = mulShift(ratio, "ffe5caca7e10e4e61c3624eaa0941cd0")
 	}
 	if (absTick & 0x10) != 0 {
@@ -103,7 +114,6 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 		ratio = new(big.Int).Div(constants.MaxUint256, ratio)
 	}
 
-	// return ratio
 	// This divides by 1<<32 to convert from Q128.128 to Q64.96
 	// We then downcast because we know the result always fits within 160 bits due to our tick input constraint
 	// We round up in the division so getTickAtSqrtRatio of the output price is always consistent
@@ -115,9 +125,13 @@ func GetSqrtRatioAtTick(tick int) *big.Int {
 	return sqrtPriceX96
 }
 
-// Calculates the greatest tick value such that getRatioAtTick(tick) <= ratio
-// Accepts sqrtPriceX96, the sqrt ratio for which to compute the tick
-// Returns the greatest tick for which the ratio is less than or equal to the input ratio
+// Calculates the greatest tick value such that getRatioAtTick(tick) <= ratio.
+// 
+// Arguments:
+// sqrtPriceX96 -- The sqrt ratio for which to compute the tick
+//
+// Returns:
+// The greatest tick for which the ratio is less than or equal to the input ratio
 func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 	if (sqrtPriceX96.Cmp(constants.MaxSqrtRatio) != -1) || (sqrtPriceX96.Cmp(constants.MinSqrtRatioBig) != 1) {
 		panic("tickMath.getTickAtSqrtRatio: INVALID_SQRT_RATIO")
@@ -137,6 +151,8 @@ func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 		msb = new(big.Int).Or(msb, f)
 		r = new(big.Int).Rsh(r, uint(f.Int64()))
 	}
+	// Calculates l0 in the iterative approximation algorithm described in the
+	// README.
 	cmp := r.Cmp(constants.MaxUints[0])
 	if cmp == -1 {
 		cmp = 0
@@ -153,6 +169,7 @@ func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 	log_2_temp := new(big.Int).Sub(msb, big.NewInt(128))
 	log_2 := new(big.Int).Lsh(log_2_temp, 64)
 
+	// Iteratively approximates a bit after the fixed point.
 	for i := 0; i < 14; i++ {
 		r = new(big.Int).Rsh(new(big.Int).Mul(r, r), 127)
 		f := new(big.Int).Rsh(r, 128)
@@ -160,9 +177,12 @@ func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 		r = new(big.Int).Rsh(r, uint(f.Uint64()))
 	}
 
+	// Change of base formula to convert from log_2 to log_sqrt(1.0001)
 	log_sqrt10001_multiplicand, _ := new(big.Int).SetString("255738958999603826347141", 10)
 	log_sqrt10001 := new(big.Int).Mul(log_2, log_sqrt10001_multiplicand)
 
+	// Adjust for the absolute error of the approximation to ensure that the
+	// tick is always less than or equal to the input ratio.
 	tickLow_sub, _ := new(big.Int).SetString("3402992956809132418596140100660247210", 10)
 	tickLow := new(big.Int).Rsh(new(big.Int).Sub(log_sqrt10001, tickLow_sub), 128)
 
@@ -181,18 +201,10 @@ func GetTickAtSqrtRatio(sqrtPriceX96 *big.Int) int {
 	}
 }
 
+// Helper function to multiply two Q128.128 fixed point numbers
 func mulShift(multiplier *big.Int, multiplicand string) *big.Int {
 	multiplicandBig, _ := new(big.Int).SetString(multiplicand, 16)
 	productBig := new(big.Int).Mul(multiplier, multiplicandBig)
 	result := new(big.Int).Rsh(productBig, 128)
 	return result
 }
-
-// func hexToBigFloat(hex string) *big.Float {
-// 	intTemp, _ := new(big.Int).SetString(hex, 16)
-// 	floatTemp, _ := new(big.Float).SetInt(bigInt)
-// 	floatQ128 := new(big.Float).SetInt(constants.Q128)
-// 	result := new(big.Float).Quo(floatTemp, floatQ128)
-// 	return result
-
-// }

@@ -12,10 +12,7 @@ import (
 )
 
 // Calculates ceil(numerator/denominator) for *big.Ints
-func DivRoundingUp(
-	numerator,
-	denominator *big.Int,
-) *big.Int {
+func DivRoundingUp(numerator, denominator *big.Int) *big.Int {
 	remainder := big.NewInt(0)
 	quotient, remainder := new(big.Int).DivMod(numerator, denominator, remainder)
 	if remainder.Cmp(big.NewInt(0)) == 1 {

@@ -25,7 +25,7 @@ var (
 	// The maximum value that can be returned by getSqrtRatioAtTick.
 	// Equivalent to getSqrtRatioAtTick(MaxTick).
 	MaxSqrtRatio = new(big.Int)
-	// For handling binary fixed point numbers, see:
+	// 2^256, 2^128 and 2^96. For handling binary fixed point numbers, see:
 	// https://en.wikipedia.org/wiki/Q_(number_format)
 	Q256 = new(big.Int)
 	Q128 = new(big.Int)

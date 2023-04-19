@@ -1,9 +1,9 @@
-// Package position contains the definition of the position type and the methods
-// necessary to manipulate positions.
-//
-// A position struct represent an owner address' liquidity between a lower and
-// upper tick boundary. They also store additional state for the tracking fees
-// owed to the position.
+// Package position simulates the Uniswap position library.
+
+// It contains the definition of the position type and the methods
+// necessary to manipulate positions. A position struct represent an owner
+// address' liquidity between a lower and upper tick boundary. It also stores
+// additional state for the tracking fees owed to the position.
 package position
 
 import (
@@ -14,6 +14,9 @@ import (
 	"github.com/chris-aubin/Uniswap-Simulator/src/libraries/liquidityMath"
 )
 
+// Position represents an owner address' liquidity between a lower and upper
+// tick boundary. They also store additional state for the tracking fees owed
+// to the position.
 type Position struct {
 	// The amount of liquidity owned by this position.
 	Liquidity *big.Int
@@ -64,6 +67,7 @@ func (p *Position) Update(liquidityDelta, feeGrowthGlobal0X128, feeGrowthGlobal1
 	}
 }
 
+// Make returns a new position struct.
 func Make() *Position {
 	return &Position{
 		Liquidity:                big.NewInt(0),

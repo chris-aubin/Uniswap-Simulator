@@ -83,7 +83,7 @@ func main() {
 
 	// Relative paths to files containing data for simulation
 	relPathToTransactions := *relPathToData + "/transactions.txt"
-	relPathToPoolState := *relPathToData + "/poolBefore.txt"
+	relPathToPoolState := *relPathToData + "/pool.txt"
 	relPathToGas := *relPathToData + "/gas.txt"
 	relPathToStrat := *relPathToData + "/strategy.txt"
 
@@ -91,7 +91,7 @@ func main() {
 	relPathToResults := "../results"
 	relPathToStratBefore := relPathToResults + "/strategyBefore.txt"
 	relPathToStratAfter := relPathToResults + "/strategyAfter.txt"
-	relPathToPoolStateBefore := relPathToResults + "/poolBefore.txt"
+	relPathToPoolStateBefore := relPathToResults + "/pool.txt"
 	relPathToPoolStateAfter := relPathToResults + "/poolAfter.txt"
 
 	// Get absolute paths to files containing data for simulation
