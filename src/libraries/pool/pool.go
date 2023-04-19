@@ -381,20 +381,8 @@ func (p *Pool) Mint(recipient string, tickLower, tickUpper int, amount *big.Int)
 			Mint:           true,
 		})
 
-	// balance0Before := new(big.Int)
-	// balance1Before := new(big.Int)
-	// if amount0.Cmp(big.NewInt(0)) >= 1 {
-	// 	balance0Before = p.Balance0
-	// }
-	// if amount1.Cmp(big.NewInt(0)) >= 1 {
-	// 	balance1Before = p.Balance1
-	// }
-
-	// Let minter know how much token0 and token1 they must pay to mint the position
-	// (This is what the IUniswapV3MintCallback does in the UniswapV3Pool contract)
-	// If payment was made mint position
-	// if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
-	// if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
+	p.Balance0 = p.Balance0.Add(p.Balance0, amount0)
+	p.Balance1 = p.Balance1.Add(p.Balance1, amount1)
 	return
 }
 
@@ -485,6 +473,9 @@ func (p *Pool) Burn(owner string, tickLower, tickUpper int, amount *big.Int) (am
 	)
 	amount0 = new(big.Int).Neg(amount0)
 	amount1 = new(big.Int).Neg(amount1)
+
+	p.Balance0 = p.Balance0.Add(p.Balance0, amount0)
+	p.Balance1 = p.Balance1.Add(p.Balance1, amount1)
 
 	// if (amount0 > 0 || amount1 > 0) {
 	if amount0.Cmp(big.NewInt(0)) >= 1 || amount1.Cmp(big.NewInt(0)) >= 1 {
@@ -788,5 +779,6 @@ func (p *Pool) Flash(paid0, paid1 *big.Int) {
 		}
 		p.FeeGrowthGlobal1X128 = new(big.Int).Add(p.FeeGrowthGlobal1X128, fullMath.MulDiv(new(big.Int).Sub(paid1, fees1), constants.Q128, p.Liquidity))
 	}
-
+	p.Balance0 = new(big.Int).Add(p.Balance0, paid0)
+	p.Balance1 = new(big.Int).Add(p.Balance1, paid1)
 }
